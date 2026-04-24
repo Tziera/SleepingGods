@@ -1967,6 +1967,7 @@ const MUSIC_DUNGEON_SLUGS = {
   'Fishbone Vault':     'fishbone-vault',
   'Coral Temple':       'coral-temple',
   'Desert Grotto':      'desert-grotto',
+  'Generic':            'generic',
 };
 
 let musicTracks = { exploration: [], dungeon: {} }; // populated by musicInit()
