@@ -732,6 +732,9 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 /* ── ZOOM-TO-SHIP BUTTON ── */
 .zoom-btn-ship{border-color:var(--gold)!important;color:var(--gold)!important;}
 .zoom-btn-ship:hover{color:var(--gold-light)!important;border-color:var(--gold-light)!important;}
+.zoom-btn-place-ship{font-size:.75rem!important;letter-spacing:-.05em;}
+.zoom-btn-place-ship.active{background:var(--teal)!important;border-color:var(--teal-light)!important;color:var(--parchment)!important;}
+#map-container.placing-ship{cursor:crosshair;}
 #map-zoom{display:none;}
 #panel-map.active ~ #map-zoom{display:flex;}
 

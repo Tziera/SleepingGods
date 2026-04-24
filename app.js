@@ -589,19 +589,29 @@ function initMap() {
       pin.addEventListener('click', ()=>openPopup(loc.id));
       wrap.appendChild(pin);
     });
-    // Ship anchor pin
+    // Ship anchor pin – free coords or loc-based
+    const sx = state.log?.shipX, sy = state.log?.shipY;
     const shipLocId = state.log?.shipLocId;
-    if (shipLocId) {
+    let shipX = null, shipY = null, shipTitle = 'Ship';
+    if (sx != null && sy != null) {
+      shipX = sx / 100 * iw;
+      shipY = sy / 100 * ih;
+    } else if (shipLocId) {
       const shipLoc = LOCATIONS_DEF.find(l => l.id === shipLocId);
       if (shipLoc) {
-        const sp = document.createElement('div');
-        sp.className = 'ship-pin';
-        sp.style.left = (shipLoc.x/100*iw)+'px';
-        sp.style.top  = (shipLoc.y/100*ih)+'px';
-        sp.title = 'Ship – Location ' + shipLocId;
-        sp.addEventListener('click', ()=>openPopup(shipLocId));
-        wrap.appendChild(sp);
+        shipX = shipLoc.x / 100 * iw;
+        shipY = shipLoc.y / 100 * ih;
+        shipTitle = 'Ship – Location ' + shipLocId;
       }
+    }
+    if (shipX !== null) {
+      const sp = document.createElement('div');
+      sp.className = 'ship-pin';
+      sp.style.left = shipX + 'px';
+      sp.style.top  = shipY + 'px';
+      sp.title = shipTitle;
+      if (shipLocId) sp.addEventListener('click', () => openPopup(shipLocId));
+      wrap.appendChild(sp);
     }
     updateHighlights();
   }
@@ -619,6 +629,33 @@ function initMap() {
     });
   }
   window.addEventListener('resize', placePins);
+
+  // Free ship placement: click on map when place-ship mode is active
+  wrap.addEventListener('click', e => {
+    if (!placeShipMode) return;
+    const rect = img.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / img.offsetWidth)  * 100;
+    const y = ((e.clientY - rect.top)  / img.offsetHeight) * 100;
+    state.log.shipX = Math.round(x * 100) / 100;
+    state.log.shipY = Math.round(y * 100) / 100;
+    state.log.shipLocId = '';
+    save();
+    placePins();
+    setPlaceShipMode(false);
+  });
+}
+
+let placeShipMode = false;
+
+function setPlaceShipMode(on) {
+  placeShipMode = on;
+  const btn = document.getElementById('btn-place-ship');
+  if (btn) btn.classList.toggle('active', on);
+  document.getElementById('map-container').classList.toggle('placing-ship', on);
+}
+
+function togglePlaceShipMode() {
+  setPlaceShipMode(!placeShipMode);
 }
 
 function updateHighlights() {
@@ -721,7 +758,13 @@ function closeDungeonViewer() {
 }
 
 function setShipLocation(locId) {
-  state.log.shipLocId = (state.log.shipLocId === locId) ? '' : locId;
+  if (state.log.shipLocId === locId) {
+    state.log.shipLocId = '';
+  } else {
+    state.log.shipLocId = locId;
+    state.log.shipX = null;
+    state.log.shipY = null;
+  }
   save();
   placePins();
   updateShipPopupBtn();
@@ -736,17 +779,24 @@ function updateShipPopupBtn() {
 }
 
 function zoomToShip() {
-  const id = state.log?.shipLocId;
-  if (!id) return;
-  const loc = LOCATIONS_DEF.find(l => l.id === id);
-  if (!loc) return;
   const container = document.getElementById('map-container');
   const img = document.getElementById('map-img');
+  let px, py;
+  if (state.log?.shipX != null) {
+    px = state.log.shipX;
+    py = state.log.shipY;
+  } else {
+    const id = state.log?.shipLocId;
+    if (!id) return;
+    const loc = LOCATIONS_DEF.find(l => l.id === id);
+    if (!loc) return;
+    px = loc.x; py = loc.y;
+  }
   mapScale = Math.min(container.offsetWidth / img.naturalWidth * 3, 2.5);
   img.style.width = (img.naturalWidth * mapScale) + 'px';
   placePins();
-  const x = loc.x / 100 * img.offsetWidth;
-  const y = loc.y / 100 * img.offsetHeight;
+  const x = px / 100 * img.offsetWidth;
+  const y = py / 100 * img.offsetHeight;
   container.scrollLeft = x - container.offsetWidth / 2;
   container.scrollTop  = y - container.offsetHeight / 2;
 }
