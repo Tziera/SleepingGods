@@ -1923,7 +1923,7 @@ if (!state.log.dateStart) {
 // ═══════════════════════════════════
 // MUSIC PLAYER
 // ═══════════════════════════════════
-const MUSIC_EXT = 'mp3';
+const MUSIC_EXT = 'ogg';
 
 const MUSIC_EXPLORATION_SLUGS = [
   'islands-at-the-edge-of-the-world',

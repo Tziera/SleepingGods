@@ -131,6 +131,7 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 .quest-col-half-title {
   font-family:'Cinzel',serif;font-size:.68rem;color:var(--rust);letter-spacing:.08em;
 }
+.loc-pin.highlighted{background:rgba(42,154,42,.25)!important;border-color:rgba(42,154,42,.8)!important;
   box-shadow:0 0 10px rgba(42,154,42,.7),0 0 22px rgba(42,154,42,.35);
   animation:pulse-green 1.5s ease-in-out infinite;
   width:22px!important;height:22px!important;}
