@@ -408,6 +408,18 @@
   </div>
 </div>
 
+<!-- ENDING PICKER DIALOG -->
+<div class="overlay" id="ending-picker-overlay">
+  <div class="dialog" style="width:360px;">
+    <h2>Which Ending?</h2>
+    <p style="font-size:.9rem;color:#7a6040;font-style:italic;margin-bottom:14px;">Select the ending number you reached.</p>
+    <div class="ending-picker-grid" id="ending-picker-grid"></div>
+    <div class="dialog-actions">
+      <button class="btn-no" onclick="pickEnding(null)">Skip</button>
+    </div>
+  </div>
+</div>
+
 <!-- HOME SCREEN -->
 <div id="panel-home">
   <div class="home-logo">Sleeping Gods</div>
@@ -421,6 +433,7 @@
 
   <button class="home-btn home-btn-primary" onclick="startNewCampaign()">New Campaign</button>
   <button class="home-btn home-btn-secondary" onclick="continueCampaign()">Continue Campaign</button>
+  <button class="home-btn home-btn-music" id="home-music-btn" onclick="musicToggleHome()">&#9654; Intro Music</button>
   <div class="leaderboard">
     <div class="lb-title">⚓ Hall of Records</div>
     <div id="leaderboard-list"></div>

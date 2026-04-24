@@ -1419,21 +1419,14 @@ function renderAchievements() {
     makeAchItem(t, 'totems', container);
   });
 
-  // Endings (#1–#13)
+  // Endings (#1–#13) – read-only, set via Finish Campaign
   const endingsEl = document.getElementById('ach-endings');
   endingsEl.innerHTML = '';
   for (let i = 1; i <= 13; i++) {
     const checked = !!achState.endings[i];
     const div = document.createElement('div');
-    div.className = 'ach-item' + (checked ? ' checked' : '');
+    div.className = 'ach-item readonly' + (checked ? ' checked' : '');
     div.innerHTML = `<div class="ach-box">✕</div><span class="ach-label">#${i}</span>`;
-    div.onclick = () => {
-      const s = getAchievementState();
-      s.endings[i] = !s.endings[i];
-      saveAchievementState(s);
-      renderAchievements();
-      renderHomeOptionals();
-    };
     endingsEl.appendChild(div);
   }
 
@@ -1554,6 +1547,40 @@ function setFinishEnding(val) {
 }
 
 function calculateScore() {
+  if (finishData.ending) {
+    closeFinish();
+    openEndingPicker();
+    return;
+  }
+  doFinish();
+}
+
+function openEndingPicker() {
+  const achState = getAchievementState();
+  const grid = document.getElementById('ending-picker-grid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= 13; i++) {
+    const alreadySeen = !!achState.endings[i];
+    const btn = document.createElement('button');
+    btn.className = 'ending-pick-btn' + (alreadySeen ? ' seen' : '');
+    btn.textContent = '#' + i;
+    btn.onclick = () => pickEnding(i);
+    grid.appendChild(btn);
+  }
+  document.getElementById('ending-picker-overlay').classList.add('open');
+}
+
+function pickEnding(num) {
+  document.getElementById('ending-picker-overlay').classList.remove('open');
+  if (num !== null) {
+    const s = getAchievementState();
+    s.endings[num] = true;
+    saveAchievementState(s);
+  }
+  doFinish();
+}
+
+function doFinish() {
   const log = state.log;
 
   // Adventure cards: 2pt each, +2 if totem
@@ -1599,7 +1626,6 @@ function calculateScore() {
   const total = advScore + questScore + levelScore + goldScore + artScore
               + endScore + defeatScore + brutalScore + optBonusScore;
 
-  // Build breakdown text
   const lines = [
     `Adventure Cards (${advCards.length}):   +${advScore}`,
     `Quest Cards (${questCount}):   +${questScore}`,
@@ -1616,12 +1642,10 @@ function calculateScore() {
   document.getElementById('score-breakdown').innerHTML =
     lines.map(l=>`<div>${l}</div>`).join('');
 
-  // Store final score on state
   state.log.finalScore = total;
   state.log.dateEnd = new Date().toISOString().split('T')[0];
   save();
 
-  closeFinish();
   document.getElementById('score-overlay').classList.add('open');
 }
 
@@ -1955,6 +1979,7 @@ let music = {
   currentSlug: null,
   playlist: [],
   idx: 0,
+  isIntro: false,
 };
 
 async function musicScanVariants(prefix) {
@@ -2025,11 +2050,30 @@ function musicToggle() {
   if (music.playing) {
     musicAudio.pause();
     music.playing = false;
+    music.isIntro = false;
   } else {
     if (!musicAudio.src || musicAudio.src === window.location.href) musicLoadCurrent();
     musicAudio.play().catch(() => {});
     music.playing = true;
   }
+  musicUpdateUI();
+}
+
+function musicToggleHome() {
+  const btn = document.getElementById('home-music-btn');
+  if (music.playing) {
+    musicAudio.pause();
+    music.playing = false;
+    music.isIntro = false;
+    if (btn) btn.innerHTML = '&#9654; Intro Music';
+    musicUpdateUI();
+    return;
+  }
+  musicAudio.src = 'music/wake-the-sleeping-gods.ogg';
+  musicAudio.play().catch(() => {});
+  music.playing = true;
+  music.isIntro = true;
+  if (btn) btn.innerHTML = '&#9646;&#9646; Pause';
   musicUpdateUI();
 }
 
@@ -2065,6 +2109,16 @@ function musicExitDungeon() {
 }
 
 musicAudio.addEventListener('ended', () => {
+  if (music.isIntro) {
+    music.isIntro = false;
+    const btn = document.getElementById('home-music-btn');
+    if (btn) btn.innerHTML = '&#9654; Intro Music';
+    musicBuildAtlasPlaylist();
+    musicLoadCurrent();
+    musicAudio.play().catch(() => {});
+    return;
+  }
+  if (!music.playlist.length) return;
   music.idx = (music.idx + 1) % music.playlist.length;
   musicLoadCurrent();
   musicAudio.play().catch(() => {});

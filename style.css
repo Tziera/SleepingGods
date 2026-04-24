@@ -458,6 +458,20 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 .home-btn-primary:hover{background:var(--teal-light);border-color:#3a8a8a;}
 .home-btn-secondary{background:transparent;border:1.5px solid var(--border);color:var(--border);}
 .home-btn-secondary:hover{border-color:var(--gold-light);color:var(--gold-light);}
+.home-btn-music{background:transparent;border:1.5px solid #5a3a7a;color:#9a6aba;font-size:.75rem;
+  padding:10px 36px;margin-top:4px;}
+.home-btn-music:hover{border-color:#9a6aba;color:#c090e0;}
+
+/* ENDING PICKER */
+.ending-picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.ending-pick-btn{font-family:'Cinzel',serif;font-size:.85rem;letter-spacing:.08em;
+  padding:10px 4px;border-radius:4px;cursor:pointer;transition:all .2s;
+  background:var(--parchment);border:1.5px solid var(--border);color:var(--ink);}
+.ending-pick-btn:hover{background:var(--teal);border-color:var(--teal-light);color:var(--parchment);}
+.ending-pick-btn.seen{border-color:var(--gold);color:var(--gold);}
+
+/* Read-only achievement items (endings) */
+.ach-item.readonly{cursor:default;pointer-events:none;opacity:.9;}
 
 /* LEADERBOARD */
 .leaderboard{width:100%;max-width:560px;margin-top:32px;}
