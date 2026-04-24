@@ -109,16 +109,45 @@ Style: toned-down version of the intro song's cinematic orchestral rock – no v
 - Title: *Wake the Sleeping Gods*
 - Style: epic power pop ballad, orchestral rock, 80s arena rock, cinematic strings, choir on chorus, male lead vocal
 
+### File Naming Convention
+```
+music/
+├── exploration-{slug}-{variant}.ogg
+├── dungeon-{slug}-{variant}.ogg
+```
+- `{slug}` – kebab-case name, e.g. `the-wandering-sea`, `crypt-of-thorns`
+- `{variant}` – `a`, `b`, `c` ... (open-ended, add more variants anytime)
+- Examples:
+  - `exploration-the-wandering-sea-a.ogg`
+  - `exploration-the-wandering-sea-b.ogg`
+  - `dungeon-crypt-of-thorns-a.ogg`
+  - `dungeon-crypt-of-thorns-b.ogg`
+  - `dungeon-crypt-of-thorns-c.ogg`  ← just drop it in, no code changes needed
+
+The music player scans for all files matching a prefix pattern, so new variants are picked up automatically.
+
+### Playback Logic
+**Atlas mode** (default):
+- Shuffle and play from all `exploration-*.ogg` tracks
+- On track end → pick a new random exploration track
+
+**Dungeon mode** (when a dungeon map is opened):
+- First play the 2 dungeon-specific tracks in order (e.g. `dungeon-crypt-of-thorns-a.ogg` then `dungeon-crypt-of-thorns-b.ogg`)
+- After that → random shuffle among all `dungeon-*.ogg` tracks
+- On dungeon close → switch back to atlas mode and exploration tracks
+
 ## File Structure
+
 ```
 /
-├── index.html        ← entire app (HTML + CSS + JS inline)
+├── index.html        ← HTML structure only
+├── style.css         ← all CSS and design tokens
+├── app.js            ← all JavaScript logic
 ├── manifest.json     ← PWA manifest
-└── music/            ← (presumed) ambient track folder
+└── music/            ← ambient track folder
 ```
 
 ## Important Conventions
-- **Do not split the file** – keep everything in `index.html` unless explicitly asked to refactor
 - **CSS variables first** – always use the design system variables, never hardcode colors
 - **Font discipline** – `Cinzel` for UI chrome, `Crimson Text` for content
 - **No external JS dependencies** – keep it vanilla
