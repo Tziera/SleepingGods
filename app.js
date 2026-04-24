@@ -614,6 +614,7 @@ function initMap() {
       wrap.appendChild(sp);
     }
     updateHighlights();
+    updatePlaceShipBtn();
   }
   window.placePins = placePins;
 
@@ -649,12 +650,38 @@ let placeShipMode = false;
 
 function setPlaceShipMode(on) {
   placeShipMode = on;
-  const btn = document.getElementById('btn-place-ship');
-  if (btn) btn.classList.toggle('active', on);
   document.getElementById('map-container').classList.toggle('placing-ship', on);
+  updatePlaceShipBtn();
+}
+
+function updatePlaceShipBtn() {
+  const btn = document.getElementById('btn-place-ship');
+  if (!btn) return;
+  const hasFreeShip = state?.log?.shipX != null;
+  if (placeShipMode) {
+    btn.textContent = '✕';
+    btn.title = 'Cancel placement';
+    btn.classList.add('active');
+  } else if (hasFreeShip) {
+    btn.innerHTML = '&#9875;&#xFE0E;×';
+    btn.title = 'Remove ship from map';
+    btn.classList.remove('active');
+  } else {
+    btn.innerHTML = '&#9875;+';
+    btn.title = 'Place ship on map';
+    btn.classList.remove('active');
+  }
 }
 
 function togglePlaceShipMode() {
+  const hasFreeShip = state?.log?.shipX != null;
+  if (!placeShipMode && hasFreeShip) {
+    state.log.shipX = null;
+    state.log.shipY = null;
+    save();
+    placePins();
+    return;
+  }
   setPlaceShipMode(!placeShipMode);
 }
 
@@ -768,6 +795,7 @@ function setShipLocation(locId) {
   save();
   placePins();
   updateShipPopupBtn();
+  updatePlaceShipBtn();
 }
 
 function updateShipPopupBtn() {

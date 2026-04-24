@@ -1,14 +1,14 @@
 # Sleeping Gods – Campaign Tracker
 
 ## Project Overview
-A single-file PWA (Progressive Web App) that serves as a campaign tracker for the board game **Sleeping Gods** (and its expansions *Tides of Ruin* and *Dungeons*).
+A PWA (Progressive Web App) that serves as a campaign tracker for the board game **Sleeping Gods** (and its expansions *Tides of Ruin* and *Dungeons*).
 
-The entire app lives in **`index.html`** – all HTML, CSS, and JavaScript is inline in one file. There are no build tools, no frameworks, no npm. Just vanilla HTML/CSS/JS.
+The app is split across three files – `index.html` (structure), `style.css` (all styles), and `app.js` (all logic). There are no build tools, no frameworks, no npm. Just vanilla HTML/CSS/JS.
 
 ## Tech Stack
 - **Vanilla HTML5 / CSS3 / JavaScript** – no frameworks, no bundler
-- **Single-file architecture** – everything in `index.html`
-- **PWA** – has a `manifest.json` for installability
+- **Three-file architecture** – `index.html` (HTML), `style.css` (CSS), `app.js` (JS)
+- **PWA** – has a `manifest.json` and `sw.js` service worker for offline support
 - **localStorage** – used for persisting campaign state
 - **Fonts** – Google Fonts: `Cinzel` (headers) and `Crimson Text` (body)
 
