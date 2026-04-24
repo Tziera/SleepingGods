@@ -1756,6 +1756,7 @@ function saveScoreAndGoHome() {
   save();
 
   closeScore();
+  musicStop();
   goHome();
 }
 
@@ -1771,6 +1772,7 @@ function cancelCampaign() {
       state.locations = prevLocations;
       state.campaignFinished = true;
       save();
+      musicStop();
       goHome();
     }, true
   );
@@ -1875,7 +1877,7 @@ function startNewCampaign() {
   document.querySelector('.nav-tab').classList.add('active');
   showPanel('map', document.querySelector('.nav-tab'));
   updateOptTab();
-  musicStart();
+  musicStartExploration();
 }
 
 function continueCampaign() {
@@ -1887,7 +1889,7 @@ function continueCampaign() {
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.querySelector('.nav-tab').classList.add('active');
   showPanel('map', document.querySelector('.nav-tab'));
-  musicStart();
+  musicStartExploration();
 }
 
 // ═══════════════════════════════════
@@ -1980,6 +1982,7 @@ let music = {
   playlist: [],
   idx: 0,
   isIntro: false,
+  pendingStart: false,
 };
 
 async function musicScanVariants(prefix) {
@@ -2008,6 +2011,14 @@ async function musicInit() {
   }
 
   musicBuildAtlasPlaylist();
+
+  if (music.pendingStart && !music.playing) {
+    music.pendingStart = false;
+    musicLoadCurrent();
+    musicAudio.play().catch(() => {});
+    music.playing = true;
+  }
+
   musicUpdateUI();
 }
 
@@ -2077,6 +2088,36 @@ function musicToggleHome() {
   musicUpdateUI();
 }
 
+function musicStop() {
+  musicAudio.pause();
+  musicAudio.src = '';
+  music.playing = false;
+  music.isIntro = false;
+  music.pendingStart = false;
+  const btn = document.getElementById('home-music-btn');
+  if (btn) btn.innerHTML = '&#9654; Intro Music';
+  musicUpdateUI();
+}
+
+function musicStartExploration() {
+  music.isIntro = false;
+  const btn = document.getElementById('home-music-btn');
+  if (btn) btn.innerHTML = '&#9654; Intro Music';
+  if (!musicTracks.exploration.length) {
+    // musicInit() still scanning – start as soon as it finishes
+    musicAudio.pause();
+    music.playing = false;
+    music.pendingStart = true;
+    musicUpdateUI();
+    return;
+  }
+  musicBuildAtlasPlaylist();
+  musicLoadCurrent();
+  musicAudio.play().catch(() => {});
+  music.playing = true;
+  musicUpdateUI();
+}
+
 function musicNext() {
   if (!music.playlist.length) return;
   music.idx = (music.idx + 1) % music.playlist.length;
@@ -2111,11 +2152,10 @@ function musicExitDungeon() {
 musicAudio.addEventListener('ended', () => {
   if (music.isIntro) {
     music.isIntro = false;
+    music.playing = false;
     const btn = document.getElementById('home-music-btn');
     if (btn) btn.innerHTML = '&#9654; Intro Music';
-    musicBuildAtlasPlaylist();
-    musicLoadCurrent();
-    musicAudio.play().catch(() => {});
+    musicUpdateUI();
     return;
   }
   if (!music.playlist.length) return;
