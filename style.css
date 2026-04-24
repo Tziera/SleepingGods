@@ -764,6 +764,7 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
     --parchment-mid:#2a1c0c;
     --border:#7a6030;
     --shadow:rgba(0,0,0,.55);
+    --rust:#d4704a;
   }
   :root:not(.force-light) .panel {
     background:var(--parchment);
@@ -778,6 +779,7 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
   --parchment-mid:#2a1c0c;
   --border:#7a6030;
   --shadow:rgba(0,0,0,.55);
+  --rust:#d4704a;
 }
 :root.force-dark .panel {
   background:var(--parchment);
