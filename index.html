@@ -50,7 +50,7 @@
   <button class="zoom-btn zoom-btn-ship" id="btn-goto-ship" onclick="zoomToShip()" title="Go to ship location">&#9875;</button>
   <button class="zoom-btn zoom-btn-place-ship" id="btn-place-ship" onclick="togglePlaceShipMode()" title="Place ship on map">&#9875;+</button>
   <div class="map-jump-wrap">
-    <input class="map-jump-input" id="map-jump-input" type="text" inputmode="numeric" placeholder="#" title="Jump to location (e.g. 47 or R3)"
+    <input class="map-jump-input" id="map-jump-input" type="text" placeholder="# / R3" title="Jump to location (e.g. 47 or R3)"
       onkeydown="if(event.key==='Enter'){jumpToLocation(this.value);this.blur();}">
     <button class="map-jump-btn" onclick="jumpToLocation(document.getElementById('map-jump-input').value)">Go</button>
   </div>

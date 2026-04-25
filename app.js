@@ -1875,12 +1875,17 @@ function goHome() {
 function renderCampaignInfo() {
   const el = document.getElementById('campaign-info');
   if (!el) return;
-  if (!campaignActive || !state || !state.log.dateStart) { el.textContent = ''; return; }
-  const start = state.log.dateStart;
-  const diff  = state.log.difficulty || 'Normal';
+  if (!campaignActive || !state || !state.log.dateStart) {
+    el.textContent = '';
+    el.style.display = 'none';
+    return;
+  }
+  const start  = state.log.dateStart;
+  const diff   = state.log.difficulty || 'Normal';
   const quests = (state.activeQuests?.length || 0) + (state.completedQuests?.length || 0);
   const players = state.log.players ? ` · ${state.log.players}` : '';
   el.textContent = `${start} · ${diff}${players} · ${quests} quest${quests !== 1 ? 's' : ''}`;
+  el.style.display = '';
 }
 
 function hideHome() {
