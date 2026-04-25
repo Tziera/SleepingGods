@@ -208,6 +208,15 @@
 
 <div id="panel-settings" class="panel" style="overflow-y:auto;padding:16px;">
 
+  <!-- GAMEPLAY -->
+  <div class="log-section">
+    <div class="log-section-title">Gameplay</div>
+    <div class="wakelock-row">
+      <button id="btn-wakelock" class="btn-wakelock" onclick="toggleWakeLock(this)">&#128261; Keep Screen Awake: Off</button>
+      <span class="wakelock-hint">Prevents tablet from auto-locking during play. Requires browser support.</span>
+    </div>
+  </div>
+
   <!-- THEME -->
   <div class="log-section">
     <div class="log-section-title">Appearance</div>
@@ -311,6 +320,11 @@
 <div id="dungeon-viewer">
   <div id="dungeon-viewer-header">
     <span id="dungeon-viewer-title">Dungeon</span>
+    <div class="dv-music-ctrl">
+      <button class="dv-music-btn" id="dv-music-btn-play" onclick="musicToggle()" title="Play/Pause">&#9654;</button>
+      <button class="dv-music-btn" id="dv-music-btn-next" onclick="musicNext()" title="Next track">&#9197;</button>
+      <button class="dv-music-btn" id="dv-music-btn-mute" onclick="musicToggleMute()" title="Mute">&#128266;</button>
+    </div>
     <button id="dungeon-viewer-close" onclick="closeDungeonViewer()">✕ Close</button>
   </div>
   <div id="dungeon-viewer-img-wrap">
@@ -433,7 +447,8 @@
   </div>
 
   <button class="home-btn home-btn-primary" onclick="startNewCampaign()">New Campaign</button>
-  <button class="home-btn home-btn-secondary" onclick="continueCampaign()">Continue Campaign</button>
+  <button class="home-btn home-btn-secondary" id="btn-continue" onclick="continueCampaign()">Continue Campaign</button>
+  <div id="campaign-info" class="campaign-info"></div>
   <button class="home-btn home-btn-music" id="home-music-btn" onclick="musicToggleHome()">&#9654; Intro Music</button>
   <div class="leaderboard">
     <div class="lb-title">⚓ Hall of Records</div>

@@ -103,6 +103,14 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
   border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .2s;
 }
 #dungeon-viewer-close:hover{border-color:var(--rust);color:var(--rust);}
+.dv-music-ctrl{display:flex;align-items:center;gap:5px;}
+.dv-music-btn{font-size:.95rem;padding:6px 10px;background:transparent;
+  color:var(--border);border:1px solid rgba(196,169,106,.35);border-radius:3px;
+  cursor:pointer;transition:all .2s;line-height:1;}
+.dv-music-btn:hover{border-color:var(--gold);color:var(--gold-light);}
+.dv-music-btn.active{color:var(--gold-light);}
+.dv-music-btn.muted{color:#7a6040;}
+
 #dungeon-viewer-img-wrap {
   flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;
   padding:16px;
@@ -461,6 +469,10 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 .home-btn-music{background:transparent;border:1.5px solid #5a3a7a;color:#9a6aba;font-size:.75rem;
   padding:10px 36px;margin-top:4px;}
 .home-btn-music:hover{border-color:#9a6aba;color:#c090e0;}
+.home-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none;}
+.campaign-info{font-family:'Crimson Text',serif;font-size:.78rem;color:#9a8060;
+  font-style:italic;text-align:center;margin-top:-6px;margin-bottom:6px;
+  width:220px;max-width:100%;min-height:1em;}
 
 /* ENDING PICKER */
 .ending-picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
@@ -493,7 +505,7 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
   width:100%;max-width:400px;margin-bottom:20px;
   border:1px solid rgba(196,169,106,.3);border-radius:6px;
   padding:12px 16px;background:rgba(255,255,255,.03);
-  max-height:280px;overflow-y:auto;
+  max-height:280px;min-height:100px;overflow-y:auto;
 }
 .home-opt-title {
   font-family:'Cinzel',serif;color:var(--border);font-size:.72rem;
@@ -749,6 +761,15 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 .players-count{font-family:'Crimson Text',serif;font-size:.75rem;
   color:var(--border);font-style:normal;margin-left:4px;}
 .players-count.over-limit{color:var(--rust);}
+
+/* ── WAKE LOCK ── */
+.wakelock-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.btn-wakelock{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.1em;
+  padding:8px 16px;border:1px solid var(--border);border-radius:3px;
+  background:transparent;color:var(--border);cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-wakelock:hover:not(.active){background:rgba(26,85,85,.12);color:var(--teal-light);}
+.btn-wakelock.active{background:var(--teal);border-color:var(--teal-light);color:var(--parchment);}
+.wakelock-hint{font-family:'Crimson Text',serif;font-size:.8rem;color:#9a8060;font-style:italic;}
 
 /* ── THEME BUTTONS ── */
 .theme-row{display:flex;gap:8px;margin-top:4px;}

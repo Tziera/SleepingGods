@@ -462,6 +462,7 @@ function defaultState() {
 }
 
 let state = loadState();
+let campaignActive = (state !== null); // true when a real campaign is in progress
 // Quest keywords – may be edited by user
 let questKeywords = JSON.parse(localStorage.getItem('sg_kw_edits') || 'null') || {...QUEST_KEYWORDS_DEFAULT};
 // Convert numeric keys back
@@ -549,7 +550,7 @@ function showPanel(name, btn) {
   if(name==='settings') renderKwEditor();
   if(name==='achievements') renderAchievements();
   if(name==='optional') renderOptional();
-  if(name==='map') updateHighlights();
+  if(name==='map') { if(window.placePins) window.placePins(); else updateHighlights(); }
 }
 
 // ═══════════════════════════════════
@@ -686,16 +687,6 @@ function togglePlaceShipMode() {
 }
 
 function updateHighlights() {
-  const activeKWs = new Set(state.activeQuests.map(q=>questKeywords[q.num]?.toUpperCase()));
-  // Build reverse: keyword → location ids
-  const kwToLocs = {};
-  Object.entries(state.locations).forEach(([locId, d]) => {
-    (d.keywords||[]).forEach(kw => {
-      const k = kw.toUpperCase();
-      if(!kwToLocs[k]) kwToLocs[k] = [];
-      kwToLocs[k].push(locId);
-    });
-  });
   document.querySelectorAll('.loc-pin').forEach(pin => {
     const id = pin.dataset.id;
     const d = state.locations[id];
@@ -1659,6 +1650,7 @@ function pickEnding(num) {
 }
 
 function doFinish() {
+  closeFinish();
   const log = state.log;
 
   // Adventure cards: 2pt each, +2 if totem
@@ -1818,6 +1810,7 @@ function clearEverything() {
 }
 
 function saveScoreAndGoHome() {
+  campaignActive = false;
   // Save to leaderboard
   const entry = {
     players   : state.log.players || 'Unknown',
@@ -1850,6 +1843,7 @@ function cancelCampaign() {
       state.locations = prevLocations;
       state.campaignFinished = true;
       save();
+      campaignActive = false;
       musicStop();
       goHome();
     }, true
@@ -1861,8 +1855,23 @@ function cancelCampaign() {
 // ═══════════════════════════════════
 function goHome() {
   document.getElementById('panel-home').classList.remove('hidden');
+  const continueBtn = document.getElementById('btn-continue');
+  if (continueBtn) continueBtn.disabled = !campaignActive;
+  renderCampaignInfo();
   renderLeaderboard();
   renderHomeOptionals();
+  releaseWakeLock();
+}
+
+function renderCampaignInfo() {
+  const el = document.getElementById('campaign-info');
+  if (!el) return;
+  if (!campaignActive || !state || !state.log.dateStart) { el.textContent = ''; return; }
+  const start = state.log.dateStart;
+  const diff  = state.log.difficulty || 'Normal';
+  const quests = (state.activeQuests?.length || 0) + (state.completedQuests?.length || 0);
+  const players = state.log.players ? ` · ${state.log.players}` : '';
+  el.textContent = `${start} · ${diff}${players} · ${quests} quest${quests !== 1 ? 's' : ''}`;
 }
 
 function hideHome() {
@@ -1950,16 +1959,18 @@ function startNewCampaign() {
   });
 
   save();
+  campaignActive = true;
   hideHome();
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.querySelector('.nav-tab').classList.add('active');
   showPanel('map', document.querySelector('.nav-tab'));
   updateOptTab();
   musicStartExploration();
+  requestWakeLock();
 }
 
 function continueCampaign() {
-  if (!state) {
+  if (!campaignActive) {
     alert('No active campaign found. Start a new one!');
     return;
   }
@@ -1968,6 +1979,7 @@ function continueCampaign() {
   document.querySelector('.nav-tab').classList.add('active');
   showPanel('map', document.querySelector('.nav-tab'));
   musicStartExploration();
+  requestWakeLock();
 }
 
 // ═══════════════════════════════════
@@ -2001,24 +2013,59 @@ function addXP() {
 }
 
 // ═══════════════════════════════════
+// WAKE LOCK
+// ═══════════════════════════════════
+let wakeLock = null;
+let wakeLockEnabled = localStorage.getItem('sg_wakelock') === 'true';
+
+async function requestWakeLock() {
+  if (!wakeLockEnabled || !('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch(e) {}
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+function toggleWakeLock(btn) {
+  wakeLockEnabled = !wakeLockEnabled;
+  localStorage.setItem('sg_wakelock', wakeLockEnabled ? 'true' : 'false');
+  updateWakeLockUI();
+  if (wakeLockEnabled && campaignActive) requestWakeLock();
+  else releaseWakeLock();
+}
+
+function updateWakeLockUI() {
+  const btn = document.getElementById('btn-wakelock');
+  if (!btn) return;
+  btn.classList.toggle('active', wakeLockEnabled);
+  btn.innerHTML = wakeLockEnabled ? '&#128262; Keep Screen Awake: On' : '&#128261; Keep Screen Awake: Off';
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && wakeLockEnabled && campaignActive && !wakeLock) {
+    requestWakeLock();
+  }
+});
+
+// ═══════════════════════════════════
 // INIT
 // ═══════════════════════════════════
-// If no saved state, show home screen; otherwise go straight to app
+// Always show home screen first; Continue Campaign is enabled when a real campaign exists
 if (!state) {
   state = defaultState();
-  document.getElementById('panel-home').classList.remove('hidden');
-  renderLeaderboard();
-  renderHomeOptionals();
-} else {
-  // Active campaign – hide home, go to map
-  document.getElementById('panel-home').classList.add('hidden');
 }
+goHome();
 
 initMap();
 initLogListeners();
 updateOptTab();
 applyTheme(localStorage.getItem('sg_theme') || 'system');
 updateUndoUI();
+updateWakeLockUI();
 
 if (!state.log.dateStart) {
   state.log.dateStart = new Date().toISOString().split('T')[0];
@@ -2244,22 +2291,24 @@ musicAudio.addEventListener('ended', () => {
 });
 
 function musicUpdateUI() {
+  const playIcon  = music.playing ? '&#9646;&#9646;' : '&#9654;';
+  const playTitle = music.playing ? 'Pause music' : 'Play music';
+  const muteIcon  = music.muted  ? '&#128263;' : '&#128266;';
+  const muteTitle = music.muted  ? 'Unmute' : 'Mute';
+
+  // Nav bar controls
   const playBtn = document.getElementById('music-btn-play');
   const muteBtn = document.getElementById('music-btn-mute');
   const modeIcon = document.getElementById('music-mode-icon');
-  if (!playBtn) return;
-  playBtn.innerHTML = music.playing ? '&#9646;&#9646;' : '&#9654;';
-  playBtn.title = music.playing ? 'Pause music' : 'Play music';
-  playBtn.classList.toggle('active', music.playing);
-  if (muteBtn) {
-    muteBtn.innerHTML = music.muted ? '&#128263;' : '&#128266;';
-    muteBtn.title = music.muted ? 'Unmute' : 'Mute';
-    muteBtn.classList.toggle('muted', music.muted);
-  }
-  if (modeIcon) {
-    modeIcon.textContent = music.mode === 'dungeon' ? '☠' : '⚓';
-    modeIcon.title = music.mode === 'dungeon' ? 'Dungeon music' : 'Atlas music';
-  }
+  if (playBtn) { playBtn.innerHTML = playIcon; playBtn.title = playTitle; playBtn.classList.toggle('active', music.playing); }
+  if (muteBtn) { muteBtn.innerHTML = muteIcon; muteBtn.title = muteTitle; muteBtn.classList.toggle('muted', music.muted); }
+  if (modeIcon) { modeIcon.textContent = music.mode === 'dungeon' ? '☠' : '⚓'; modeIcon.title = music.mode === 'dungeon' ? 'Dungeon music' : 'Atlas music'; }
+
+  // Dungeon viewer controls
+  const dvPlay = document.getElementById('dv-music-btn-play');
+  const dvMute = document.getElementById('dv-music-btn-mute');
+  if (dvPlay) { dvPlay.innerHTML = playIcon; dvPlay.title = playTitle; dvPlay.classList.toggle('active', music.playing); }
+  if (dvMute) { dvMute.innerHTML = muteIcon; dvMute.title = muteTitle; dvMute.classList.toggle('muted', music.muted); }
 }
 
 musicInit();
