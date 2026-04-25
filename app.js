@@ -1028,16 +1028,6 @@ function renderOptional() {
     discEl.appendChild(item);
   });
 
-  // Build dropdown
-  const sel=document.getElementById('opt-unlock-sel');
-  sel.innerHTML='<option value="">— Select optional rule —</option>';
-  const activated=new Set([...state.activeOptional,...state.discardedOptional].map(q=>q.num));
-  [...OPTIONAL_QUEST_NUMS].sort((a,b)=>a-b).forEach(n=>{
-    if(!activated.has(n)){
-      const o=document.createElement('option'); o.value=n;
-      o.textContent='Quest '+n; sel.appendChild(o);
-    }
-  });
 }
 
 function unlockOptional() {
@@ -1085,6 +1075,7 @@ function doQA(action) {
 function updateOptTab() {
   const tab=document.getElementById('opt-nav-tab');
   if(tab) tab.style.display = (state.activeOptional.length+state.discardedOptional.length)>0 ? '' : 'none';
+  if(typeof updateNavHeight==='function') updateNavHeight();
 }
 
 // ═══════════════════════════════════
@@ -2068,10 +2059,11 @@ function updateNavBadges() {
 // MAP – JUMP TO LOCATION
 // ═══════════════════════════════════
 function jumpToLocation(val) {
-  const id = String(parseInt(val));
-  if (!id || id === 'NaN') return;
-  const loc = LOCATIONS_DEF.find(l => l.id === id);
-  if (!loc) { showToast(`Location ${id} not found`, 'warn'); return; }
+  const raw = String(val || '').trim().toUpperCase();
+  if (!raw) return;
+  const loc = LOCATIONS_DEF.find(l => l.id.toUpperCase() === raw);
+  if (!loc) { showToast(`Location ${raw} not found`, 'warn'); return; }
+  const id = loc.id;
   const img = document.getElementById('map-img');
   const container = document.getElementById('map-container');
   if (mapScale < 1.5) {
@@ -2255,6 +2247,13 @@ updateUndoUI();
 updateWakeLockUI();
 updateNavBadges();
 initGestures();
+
+function updateNavHeight() {
+  const h = document.getElementById('nav').getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--nav-h', Math.ceil(h) + 'px');
+}
+updateNavHeight();
+window.addEventListener('resize', updateNavHeight);
 
 // Backup reminder – warn if no export in 7+ days during an active campaign
 const _lastExport = localStorage.getItem('sg_last_export');

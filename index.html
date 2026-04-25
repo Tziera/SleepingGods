@@ -50,8 +50,8 @@
   <button class="zoom-btn zoom-btn-ship" id="btn-goto-ship" onclick="zoomToShip()" title="Go to ship location">&#9875;</button>
   <button class="zoom-btn zoom-btn-place-ship" id="btn-place-ship" onclick="togglePlaceShipMode()" title="Place ship on map">&#9875;+</button>
   <div class="map-jump-wrap">
-    <input class="map-jump-input" id="map-jump-input" type="number" min="1" max="230" placeholder="#" title="Jump to location"
-      onkeydown="if(event.key==='Enter')jumpToLocation(this.value)">
+    <input class="map-jump-input" id="map-jump-input" type="text" inputmode="numeric" placeholder="#" title="Jump to location (e.g. 47 or R3)"
+      onkeydown="if(event.key==='Enter'){jumpToLocation(this.value);this.blur();}">
     <button class="map-jump-btn" onclick="jumpToLocation(document.getElementById('map-jump-input').value)">Go</button>
   </div>
 </div>
@@ -305,10 +305,7 @@
         <div class="quest-list" id="opt-discarded-list"></div>
       </div>
     </div>
-    <div class="quest-unlock-area">
-      <select class="quest-select" id="opt-unlock-sel"></select>
-      <button class="btn-primary" onclick="unlockOptional()">Activate</button>
-    </div>
+    <!-- Optional rules can only be added at campaign start via the home screen -->
   </div>
 </div>
 

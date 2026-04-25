@@ -9,10 +9,10 @@
 html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;background:#0d0a05;color:var(--ink);}
 
 /* NAV */
-#nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);
+#nav{position:fixed;top:0;left:0;right:0;min-height:var(--nav-h);
   background:linear-gradient(180deg,#0d0a05,#1c1208);
   border-bottom:2px solid var(--gold);
-  display:flex;align-items:center;padding:0 16px;z-index:100;gap:8px;}
+  display:flex;align-items:center;flex-wrap:wrap;padding:4px 16px;z-index:100;gap:8px;}
 .nav-logo{font-family:'Cinzel',serif;color:var(--gold-light);font-size:1rem;
   font-weight:700;letter-spacing:.06em;white-space:nowrap;flex-shrink:0;}
 .nav-logo small{display:block;font-size:.55rem;color:var(--border);letter-spacing:.2em;font-weight:400;}
@@ -471,7 +471,7 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 .home-btn-music:hover{border-color:#9a6aba;color:#c090e0;}
 .home-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none;}
 .campaign-info{font-family:'Crimson Text',serif;font-size:.78rem;color:#9a8060;
-  font-style:italic;text-align:center;margin-top:-6px;margin-bottom:6px;
+  font-style:italic;text-align:center;margin-top:-4px;margin-bottom:16px;
   width:220px;max-width:100%;min-height:1em;}
 
 /* ENDING PICKER */
