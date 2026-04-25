@@ -450,6 +450,7 @@ function defaultState() {
     unlockedNums: [],
     adventureCards: [],        // {num, totem}
     discardedAdvCards: [],     // {num} – discarded, not scored
+    dungeonStatus: {},         // locId -> 'explored' | 'cleared'
     campaignFinished: false,
     log: {
       dateStart: new Date().toISOString().split('T')[0],
@@ -457,6 +458,7 @@ function defaultState() {
       shipLocation:'', shipLocId:'', nextPlayer:'',
       shipDamage:{}, crewDamage:{}, crewLevel:{}, commandTokens:{},
       xp:[], defeats:[false,false,false,false,false,false], eventDeck:1,
+      sessions: [],
     }
   };
 }
@@ -484,6 +486,8 @@ function loadState() {
     if (!s.activeOptional) s.activeOptional = [];
     if (!s.discardedOptional) s.discardedOptional = [];
     if (!s.log.shipLocId) s.log.shipLocId = '';
+    if (!s.dungeonStatus) s.dungeonStatus = {};
+    if (!s.log.sessions) s.log.sessions = [];
     // If campaign was finished, treat as no active campaign (go to home)
     if (s.campaignFinished) return null;
     return s;
@@ -586,7 +590,11 @@ function initMap() {
       pin.title = 'Location '+loc.id;
       const d = state.locations[loc.id];
       if(d?.keywords?.length || d?.note) pin.classList.add('has-data');
-      if(DUNGEON_LOCATIONS.has(loc.id)) pin.classList.add('dungeon');
+      if(DUNGEON_LOCATIONS.has(loc.id)) {
+        pin.classList.add('dungeon');
+        const ds = state.dungeonStatus?.[loc.id];
+        if (ds) pin.classList.add(ds);
+      }
       pin.addEventListener('click', ()=>openPopup(loc.id));
       wrap.appendChild(pin);
     });
@@ -763,15 +771,18 @@ function openPopup(locId) {
 function openDungeonViewer(locId) {
   const dungeon = DUNGEON_MAPS[locId];
   if (!dungeon) return;
+  currentDungeonLocId = locId;
   document.getElementById('dungeon-viewer-title').textContent = '☠ ' + dungeon.name;
   document.getElementById('dungeon-viewer-img').src = dungeon.img;
   document.getElementById('dungeon-viewer').classList.add('open');
+  updateDungeonExploredBtn(locId);
   musicEnterDungeon(dungeon.name);
 }
 
 function closeDungeonViewer() {
   document.getElementById('dungeon-viewer').classList.remove('open');
   setTimeout(() => { document.getElementById('dungeon-viewer-img').src = ''; }, 300);
+  currentDungeonLocId = null;
   musicExitDungeon();
 }
 
@@ -1254,6 +1265,11 @@ function renderLog() {
     dr.appendChild(b);
   }
   [1,2,3].forEach(n=>document.getElementById('evt-'+n).classList.toggle('active',n===(log.eventDeck||1)));
+  renderSessionNotes();
+  // Set today as default date for new session note
+  const sdi = document.getElementById('session-date');
+  if (sdi && !sdi.value) sdi.value = new Date().toISOString().split('T')[0];
+  updateNavBadges();
 }
 
 function getPlayerNames() {
@@ -1280,7 +1296,7 @@ function renderXP() {
 function toggleShipDmg(roomId,box,max) {
   const cur=state.log.shipDamage[roomId]||0;
   state.log.shipDamage[roomId]=(cur===box)?box-1:box;
-  save(); renderLog();
+  save(); renderLog(); updateNavBadges();
 }
 function changeCrewDmg(idx,d) {
   const name=CREW_MEMBERS[idx];
@@ -1570,7 +1586,7 @@ function saveKwEdits() {
   kwEditorVisible=false;
   document.getElementById('kw-editor-wrap').style.display='none';
   document.getElementById('kw-toggle-btn').textContent='Show Keyword List';
-  alert('Keywords saved!');
+  showToast('Keywords saved!', 'ok');
 }
 
 // ═══════════════════════════════════
@@ -1743,6 +1759,8 @@ function exportData() {
   a.href = url; a.download = `sleeping-gods-backup-${date}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  localStorage.setItem('sg_last_export', new Date().toISOString());
+  showToast('Backup exported!', 'ok');
 }
 
 function importData(event) {
@@ -2013,6 +2031,175 @@ function addXP() {
 }
 
 // ═══════════════════════════════════
+// TOAST NOTIFICATIONS
+// ═══════════════════════════════════
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('visible'));
+  setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  }, 2800);
+}
+
+// ═══════════════════════════════════
+// NAV BADGES
+// ═══════════════════════════════════
+const SHIP_MAX_DAMAGE = 11; // sum of all room max values (1+2+2+2+2+2)
+
+function updateNavBadges() {
+  const badge = document.getElementById('badge-log');
+  if (!badge || !state) return;
+  const dmg = Object.values(state.log.shipDamage || {}).reduce((a, b) => a + b, 0);
+  if (dmg > 0) {
+    badge.textContent = `${dmg}/${SHIP_MAX_DAMAGE}`;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════
+// MAP – JUMP TO LOCATION
+// ═══════════════════════════════════
+function jumpToLocation(val) {
+  const id = String(parseInt(val));
+  if (!id || id === 'NaN') return;
+  const loc = LOCATIONS_DEF.find(l => l.id === id);
+  if (!loc) { showToast(`Location ${id} not found`, 'warn'); return; }
+  const img = document.getElementById('map-img');
+  const container = document.getElementById('map-container');
+  if (mapScale < 1.5) {
+    mapScale = 1.5;
+    img.style.width = (img.naturalWidth * mapScale) + 'px';
+    if (window.placePins) window.placePins();
+  }
+  const x = loc.x / 100 * img.offsetWidth;
+  const y = loc.y / 100 * img.offsetHeight;
+  container.scrollLeft = x - container.offsetWidth / 2;
+  container.scrollTop  = y - container.offsetHeight / 2;
+  const pin = document.querySelector(`.loc-pin[data-id="${id}"]`);
+  if (pin) {
+    pin.classList.add('jump-flash');
+    setTimeout(() => pin.classList.remove('jump-flash'), 1600);
+  }
+  document.getElementById('map-jump-input').value = '';
+}
+
+// ═══════════════════════════════════
+// DUNGEON STATUS
+// ═══════════════════════════════════
+let currentDungeonLocId = null;
+
+function updateDungeonExploredBtn(locId) {
+  const btn = document.getElementById('dv-explored-btn');
+  if (!btn) return;
+  const status = state.dungeonStatus?.[locId];
+  if (!status) {
+    btn.textContent = '○ Mark Explored';
+    btn.className = 'dv-explored-btn';
+  } else if (status === 'explored') {
+    btn.textContent = '◎ Explored';
+    btn.className = 'dv-explored-btn explored';
+  } else {
+    btn.textContent = '✓ Cleared';
+    btn.className = 'dv-explored-btn cleared';
+  }
+}
+
+function toggleDungeonExplored() {
+  if (!currentDungeonLocId) return;
+  const cur = state.dungeonStatus[currentDungeonLocId];
+  if (!cur) state.dungeonStatus[currentDungeonLocId] = 'explored';
+  else if (cur === 'explored') state.dungeonStatus[currentDungeonLocId] = 'cleared';
+  else delete state.dungeonStatus[currentDungeonLocId];
+  save();
+  updateDungeonExploredBtn(currentDungeonLocId);
+  if (window.placePins) window.placePins();
+}
+
+// ═══════════════════════════════════
+// SESSION NOTES
+// ═══════════════════════════════════
+function addSessionNote() {
+  const dateEl = document.getElementById('session-date');
+  const noteEl = document.getElementById('session-note');
+  if (!dateEl || !noteEl) return;
+  const date = dateEl.value || new Date().toISOString().split('T')[0];
+  const note = noteEl.value.trim();
+  if (!note) return;
+  if (!state.log.sessions) state.log.sessions = [];
+  state.log.sessions.unshift({ date, note });
+  save();
+  noteEl.value = '';
+  renderSessionNotes();
+}
+
+function deleteSessionNote(idx) {
+  if (!state.log.sessions) return;
+  state.log.sessions.splice(idx, 1);
+  save();
+  renderSessionNotes();
+}
+
+function renderSessionNotes() {
+  const list = document.getElementById('session-list');
+  if (!list) return;
+  const sessions = state.log.sessions || [];
+  if (!sessions.length) {
+    list.innerHTML = '<div class="empty-state">No session notes yet</div>';
+    return;
+  }
+  list.innerHTML = sessions.map((s, i) => `
+    <div class="session-entry">
+      <div class="session-header">
+        <span class="session-date">${s.date}</span>
+        <button class="session-del" onclick="deleteSessionNote(${i})">✕</button>
+      </div>
+      <div class="session-note-text">${s.note.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════
+// CAMPAIGN SUMMARY
+// ═══════════════════════════════════
+function copyCampaignSummary() {
+  const total     = document.getElementById('score-total')?.textContent || '0';
+  const lines     = [...(document.getElementById('score-breakdown')?.querySelectorAll('div') || [])].map(l => '  ' + l.textContent);
+  const players   = state.log.players || 'Unknown';
+  const diff      = state.log.difficulty || 'Normal';
+  const start     = state.log.dateStart || '?';
+  const end       = state.log.dateEnd || new Date().toISOString().split('T')[0];
+  const quests    = (state.activeQuests?.length || 0) + (state.completedQuests?.length || 0);
+  const adv       = state.adventureCards?.length || 0;
+
+  const text = [
+    '⚓ Sleeping Gods – Campaign Complete!',
+    `Players: ${players}`,
+    `Difficulty: ${diff}`,
+    `${start} → ${end}`,
+    `Quests: ${quests}  |  Adventure cards: ${adv}`,
+    '',
+    `Final Score: ${total}`,
+    ...lines,
+  ].join('\n');
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(
+      () => showToast('Summary copied!', 'ok'),
+      () => showToast('Copy failed – try long-pressing', 'warn')
+    );
+  } else {
+    showToast('Clipboard not available', 'warn');
+  }
+}
+
+// ═══════════════════════════════════
 // WAKE LOCK
 // ═══════════════════════════════════
 let wakeLock = null;
@@ -2066,11 +2253,76 @@ updateOptTab();
 applyTheme(localStorage.getItem('sg_theme') || 'system');
 updateUndoUI();
 updateWakeLockUI();
+updateNavBadges();
+initGestures();
+
+// Backup reminder – warn if no export in 7+ days during an active campaign
+const _lastExport = localStorage.getItem('sg_last_export');
+if (campaignActive && _lastExport) {
+  const _daysSince = Math.floor((Date.now() - new Date(_lastExport)) / 86400000);
+  if (_daysSince >= 7) {
+    setTimeout(() => showToast(`Last backup was ${_daysSince} days ago – consider exporting`, 'warn'), 1500);
+  }
+}
 
 if (!state.log.dateStart) {
   state.log.dateStart = new Date().toISOString().split('T')[0];
   save();
 }
+// ═══════════════════════════════════
+// GESTURES – swipe between tabs & pinch-to-zoom on map
+// ═══════════════════════════════════
+function initGestures() {
+  // Swipe left/right on non-map panels to switch tabs
+  let swipeStartX = 0, swipeStartY = 0;
+  document.querySelectorAll('.panel:not(#panel-map)').forEach(panel => {
+    panel.addEventListener('touchstart', e => {
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+    }, { passive: true });
+    panel.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - swipeStartX;
+      const dy = e.changedTouches[0].clientY - swipeStartY;
+      if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
+      const tabs = [...document.querySelectorAll('.nav-tab')].filter(t => t.style.display !== 'none');
+      const active = document.querySelector('.nav-tab.active');
+      const idx = tabs.indexOf(active);
+      const target = dx < 0 ? tabs[idx + 1] : tabs[idx - 1];
+      if (target) target.click();
+    }, { passive: true });
+  });
+
+  // Pinch-to-zoom on map
+  let pinchDist = null, pinchScale = 1;
+  const mapCon = document.getElementById('map-container');
+  mapCon.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      pinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchScale = mapScale;
+    }
+  }, { passive: true });
+  mapCon.addEventListener('touchmove', e => {
+    if (e.touches.length !== 2 || !pinchDist) return;
+    e.preventDefault();
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    mapScale = Math.min(Math.max(pinchScale * dist / pinchDist, 0.4), 4);
+    const img = document.getElementById('map-img');
+    img.style.width = (img.naturalWidth * mapScale) + 'px';
+  }, { passive: false });
+  mapCon.addEventListener('touchend', e => {
+    if (e.touches.length < 2) {
+      pinchDist = null;
+      if (window.placePins) window.placePins();
+    }
+  }, { passive: true });
+}
+
 // ═══════════════════════════════════
 // MUSIC PLAYER
 // ═══════════════════════════════════

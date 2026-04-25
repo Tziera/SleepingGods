@@ -40,23 +40,28 @@ Fonts: `Cinzel` for all headings/labels, `Crimson Text` for body/inputs.
 - **Journey Log** – ship status, crew HP/fatigue, XP, events, damage
 - **Optional Rules** – (hidden by default, shown when rules are active)
 - **Achievements** – achievement tracking with endings and unlocked cards
-- **⚙ Settings** – export/import/clear campaign data
+- **⚙ Settings** – wake lock toggle, theme, export/import/clear campaign data, keyword editor
 
 ### Key UI Components
-- `#panel-home` – home/start screen with leaderboard and campaign selection
-- `#panel-map` – zoomable map with `.loc-pin` markers (regular and dungeon variants)
+- `#panel-home` – home/start screen with leaderboard and campaign selection. Always shown at startup; `campaignActive` flag controls whether "Continue Campaign" is enabled.
+- `#panel-map` – zoomable map with `.loc-pin` markers (regular and dungeon variants). Supports pinch-to-zoom and has a jump-to-location input.
 - `#loc-popup` – bottom sheet popup for location notes and keywords
-- `#dungeon-viewer` – fullscreen dungeon image viewer
+- `#dungeon-viewer` – fullscreen dungeon image viewer with music controls and explored/cleared toggle
 - `.quest-layout` – three-column quest board
-- `#panel-log` – journey log with ship rooms, crew grid, XP tracker
+- `#panel-log` – journey log with ship rooms, crew grid, XP tracker, and session notes
 - `#panel-achievements` – achievement sheet
 - `.overlay` / `.dialog` – modal dialogs
+- `#toast-container` – fixed toast notification container (bottom-center)
+- `#map-zoom` – zoom controls + jump-to-location input (`#map-jump-input`)
 
 ### Special Map Pins
 - `.loc-pin` – standard location pin (blue tones)
-- `.loc-pin.dungeon` – dungeon location (purple, with ☠ icon)
+- `.loc-pin.dungeon` – dungeon location (purple skull icon)
+- `.loc-pin.dungeon.explored` – dungeon visited (gold skull)
+- `.loc-pin.dungeon.cleared` – dungeon completed (green skull)
 - `.loc-pin.highlighted` – animated green glow for quest matches
 - `.loc-pin.has-data` – filled dot when location has notes/keywords
+- `.loc-pin.jump-flash` – brief gold flash animation when jumped to via search
 
 ## Game Context
 
@@ -72,14 +77,17 @@ Fonts: `Cinzel` for all headings/labels, `Crimson Text` for body/inputs.
 - **Dungeons** – dungeon crawl expansion with separate dungeon maps
 
 ### Game Mechanics tracked
-- Ship room damage (6 rooms, multiple damage boxes each)
-- Crew members with HP and Fatigue stats
+- Ship room damage (6 rooms, 11 total damage boxes)
+- Crew members with Damage and Level stats (not HP/Fatigue – those are in-game terms, the fields are `crewDamage` and `crewLevel`)
 - XP (spent/unspent tracking)
 - Quest keywords (for matching quests to locations)
 - Adventure cards with totems
 - Events (numbered boxes)
 - Campaign difficulty (Normal / Brutal)
+- Dungeon status per location (explored / cleared)
+- Session notes (date + freetext, stored in `state.log.sessions`)
 - Score calculation on campaign finish
+- Defeats (6 checkboxes, each costs −10 pts; displayed in red)
 
 ## Music
 The app plays ambient/instrumental background music. 25 tracks total, generated via Suno (2 variants per prompt):
@@ -151,7 +159,7 @@ The music player scans for all files matching a prefix pattern, so new variants 
 - **CSS variables first** – always use the design system variables, never hardcode colors
 - **Font discipline** – `Cinzel` for UI chrome, `Crimson Text` for content
 - **No external JS dependencies** – keep it vanilla
-- **localStorage keys** – check existing keys before adding new ones to avoid conflicts
+- **localStorage keys** – check existing keys before adding new ones to avoid conflicts. Current keys: `sg_state`, `sg_achievements`, `sg_leaderboard`, `sg_kw_edits`, `sg_theme`, `sg_wakelock`, `sg_last_export`
 - **Mobile-first** – the app is primarily used on phones/tablets during play; test responsive behavior
 
 ## Common Tasks
@@ -165,7 +173,13 @@ The music player scans for all files matching a prefix pattern, so new variants 
 Use the existing `.overlay` + `.dialog` pattern. Toggle `.open` class to show/hide.
 
 ### Modifying crew members
-Crew data is in the Journey Log panel. Each member has HP and Fatigue tracked with +/- buttons.
+Crew data is in the Journey Log panel. Each member has **Damage** and **Level** tracked with +/- buttons (stored as `crewDamage[name]` and `crewLevel[name]` in `state.log`).
+
+### Home screen flow
+The app always shows the home screen at startup. If a saved active campaign exists, "Continue Campaign" is enabled and shows campaign info (start date, difficulty, quest count). The `campaignActive` flag (set from `loadState()`) controls this — it's updated in `startNewCampaign()`, `continueCampaign()`, `cancelCampaign()`, and `saveScoreAndGoHome()`.
+
+### Toast notifications
+Use `showToast(msg, type)` where type is `'ok'` | `'warn'` | `'info'`. Toasts auto-dismiss after 2.8s.
 
 ### Score calculation
 Triggered by "Finish Campaign" button → `openFinishCampaign()`. Score is based on totems, achievements, difficulty modifier, etc.

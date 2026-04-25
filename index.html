@@ -21,7 +21,7 @@
     <button class="nav-tab active" onclick="showPanel('map',this)">Map</button>
     <button class="nav-tab" onclick="showPanel('quests',this)">Quests</button>
     <button class="nav-tab" onclick="showPanel('adv',this)">Adventure</button>
-    <button class="nav-tab" onclick="showPanel('log',this)">Journey Log</button>
+    <button class="nav-tab" onclick="showPanel('log',this)">Journey Log<span class="nav-badge" id="badge-log" style="display:none;"></span></button>
     <button class="nav-tab" id="opt-nav-tab" onclick="showPanel('optional',this)" style="display:none;">Optional Rules</button>
     <button class="nav-tab" onclick="showPanel('achievements',this)">Achievements</button>
     <button class="nav-tab" onclick="showPanel('settings',this)">⚙</button>
@@ -49,6 +49,11 @@
   <button class="zoom-btn" onclick="mapZoom(0)" title="Fit to screen">&#8861;</button>
   <button class="zoom-btn zoom-btn-ship" id="btn-goto-ship" onclick="zoomToShip()" title="Go to ship location">&#9875;</button>
   <button class="zoom-btn zoom-btn-place-ship" id="btn-place-ship" onclick="togglePlaceShipMode()" title="Place ship on map">&#9875;+</button>
+  <div class="map-jump-wrap">
+    <input class="map-jump-input" id="map-jump-input" type="number" min="1" max="230" placeholder="#" title="Jump to location"
+      onkeydown="if(event.key==='Enter')jumpToLocation(this.value)">
+    <button class="map-jump-btn" onclick="jumpToLocation(document.getElementById('map-jump-input').value)">Go</button>
+  </div>
 </div>
 
 <!-- QUESTS -->
@@ -172,6 +177,16 @@
           <div class="event-box" id="evt-3" onclick="setEvt(3)">3</div>
         </div></div>
     </div>
+  </div>
+
+  <div class="log-section">
+    <div class="log-section-title">Session Notes</div>
+    <div class="session-add-row">
+      <input type="date" class="session-date-inp" id="session-date">
+      <textarea class="session-note-inp" id="session-note" placeholder="Brief notes from this session…" rows="2"></textarea>
+      <button class="btn-add-session" onclick="addSessionNote()">+ Add</button>
+    </div>
+    <div class="session-list" id="session-list"></div>
   </div>
 </div>
 
@@ -325,6 +340,7 @@
       <button class="dv-music-btn" id="dv-music-btn-next" onclick="musicNext()" title="Next track">&#9197;</button>
       <button class="dv-music-btn" id="dv-music-btn-mute" onclick="musicToggleMute()" title="Mute">&#128266;</button>
     </div>
+    <button class="dv-explored-btn" id="dv-explored-btn" onclick="toggleDungeonExplored()"></button>
     <button id="dungeon-viewer-close" onclick="closeDungeonViewer()">✕ Close</button>
   </div>
   <div id="dungeon-viewer-img-wrap">
@@ -418,6 +434,7 @@
     <div class="score-breakdown" id="score-breakdown"></div>
     <div class="dialog-actions">
       <button class="btn-no" onclick="closeScore()">Close</button>
+      <button class="btn-no" onclick="copyCampaignSummary()" title="Copy result to clipboard">&#128203; Copy</button>
       <button class="btn-yes" onclick="saveScoreAndGoHome()">Save & Go Home</button>
     </div>
   </div>
@@ -456,6 +473,7 @@
   </div>
 </div>
 
+<div id="toast-container"></div>
 <script src="app.js"></script>
 </body>
 </html>
