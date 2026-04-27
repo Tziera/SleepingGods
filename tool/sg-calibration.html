@@ -1,0 +1,456 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Map Calibration – Sleeping Gods</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --ink:#1a1208; --parchment:#f4ecda; --parchment-dark:#e6d8b8;
+    --gold:#b8860b; --gold-light:#d4a820; --rust:#7a2e10;
+    --teal:#1a5555; --border:#c4a96a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; overflow:hidden; font-family:'Crimson Text',serif; background:#0d0a05; color:var(--ink); }
+
+  #toolbar {
+    position:fixed; top:0; left:0; right:0; height:56px;
+    background:linear-gradient(180deg,#0d0a05,#1c1208);
+    border-bottom:2px solid var(--gold);
+    display:flex; align-items:center; gap:12px; padding:0 16px; z-index:100;
+  }
+  .t-logo { font-family:'Cinzel',serif; color:var(--gold-light); font-size:.95rem; font-weight:700; letter-spacing:.06em; }
+  .t-logo small { color:var(--border); font-size:.6rem; letter-spacing:.15em; font-weight:400; margin-left:6px; }
+
+  #mode-info {
+    font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.08em;
+    color:var(--border); flex:1;
+  }
+  #current-target {
+    font-family:'Cinzel',serif; font-size:.9rem; color:var(--gold-light);
+    background:rgba(180,134,11,.15); border:1px solid var(--gold);
+    border-radius:4px; padding:4px 14px; min-width:100px; text-align:center;
+  }
+
+  .t-btn {
+    font-family:'Cinzel',serif; font-size:.65rem; letter-spacing:.1em;
+    padding:7px 14px; border-radius:3px; cursor:pointer; transition:all .2s;
+    white-space:nowrap;
+  }
+  .t-btn-teal { background:var(--teal); color:var(--parchment); border:none; }
+  .t-btn-teal:hover { background:#256868; }
+  .t-btn-ghost { background:transparent; color:var(--border); border:1px solid var(--border); }
+  .t-btn-ghost:hover { background:rgba(196,169,106,.15); color:var(--gold-light); }
+  .t-btn-rust { background:var(--rust); color:var(--parchment); border:none; }
+  .t-btn-rust:hover { background:#a03818; }
+
+  #map-wrap {
+    position:fixed; top:56px; left:0; right:320px; bottom:0;
+    overflow:auto; cursor:crosshair; background:#f0ebe0;
+  }
+  #map-inner { position:relative; display:inline-block; }
+  #map-img { display:block; max-width:none; user-select:none; -webkit-user-drag:none; }
+
+  .pin {
+    position:absolute; transform:translate(-50%,-50%);
+    border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Cinzel',serif; font-weight:700; transition:all .15s;
+    box-shadow:0 2px 6px rgba(0,0,0,.5);
+    pointer-events:all;
+  }
+  .pin-placed {
+    width:20px; height:20px; font-size:7px;
+    background:rgba(26,85,85,.85); border:1.5px solid #4aafaf;
+    color:#d4ffff;
+  }
+  .pin-placed:hover { background:rgba(26,85,85,1); transform:translate(-50%,-50%) scale(1.3); }
+  .pin-active {
+    width:26px; height:26px; font-size:8px;
+    background:rgba(184,134,11,.9); border:2px solid var(--gold-light);
+    color:#fff; animation:pulse-gold .8s ease-in-out infinite;
+  }
+  @keyframes pulse-gold {
+    0%,100% { box-shadow:0 0 6px rgba(212,168,32,.8); }
+    50% { box-shadow:0 0 16px rgba(212,168,32,1), 0 0 30px rgba(212,168,32,.4); }
+  }
+
+  /* crosshair helper */
+  #crosshair {
+    position:fixed; pointer-events:none; z-index:50;
+    display:none;
+  }
+  #crosshair::before, #crosshair::after {
+    content:''; position:absolute; background:rgba(212,168,32,.6);
+  }
+  #crosshair::before { width:1px; height:20px; left:0; top:-10px; }
+  #crosshair::after  { width:20px; height:1px; top:0; left:-10px; }
+
+  /* SIDEBAR */
+  #sidebar {
+    position:fixed; top:56px; right:0; width:320px; bottom:0;
+    background:var(--parchment);
+    border-left:2px solid var(--gold);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  .sb-section {
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+  }
+  .sb-title {
+    font-family:'Cinzel',serif; font-size:.8rem; color:var(--rust);
+    letter-spacing:.08em; margin-bottom:10px;
+  }
+
+  #progress-bar-wrap {
+    background:var(--parchment-dark); border-radius:3px; height:8px; overflow:hidden;
+    margin-bottom:6px;
+  }
+  #progress-bar { height:100%; background:var(--teal); transition:width .3s; border-radius:3px; }
+  #progress-text { font-size:.82rem; color:#7a6040; font-style:italic; }
+
+  /* Queue */
+  #queue-wrap { flex:1; overflow-y:auto; padding:0; }
+  .queue-item {
+    display:flex; align-items:center; gap:10px;
+    padding:8px 16px; border-bottom:1px solid rgba(196,169,106,.3);
+    font-size:.85rem; cursor:pointer; transition:background .15s;
+  }
+  .queue-item:hover { background:rgba(196,169,106,.15); }
+  .queue-item.done { color:#aaa; text-decoration:line-through; }
+  .queue-item.current { background:rgba(180,134,11,.12); font-weight:600; color:var(--rust); }
+  .queue-item.done .qi-dot { background:#bbb; }
+  .queue-item.current .qi-dot { background:var(--gold); }
+  .qi-dot { width:8px; height:8px; border-radius:50%; background:var(--teal); flex-shrink:0; }
+  .qi-num { font-family:'Cinzel',serif; font-size:.75rem; min-width:36px; }
+  .qi-xy { font-size:.72rem; color:#9a8060; font-style:italic; margin-left:auto; }
+
+  /* Output */
+  #output-area {
+    flex-shrink:0; border-top:2px solid var(--border);
+  }
+  .output-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 16px; background:var(--parchment-dark);
+  }
+  .output-title { font-family:'Cinzel',serif; font-size:.75rem; color:var(--rust); letter-spacing:.08em; }
+  #output-box {
+    font-family:monospace; font-size:.7rem; padding:10px 16px;
+    background:#1a1208; color:#c4a96a; height:100px; overflow-y:auto;
+    white-space:pre; resize:none; border:none; width:100%;
+  }
+
+  /* zoom controls */
+  #zoom-ctrl {
+    position:fixed; bottom:16px; left:16px; display:flex; flex-direction:column; gap:4px; z-index:50;
+  }
+  .zoom-btn {
+    width:36px; height:36px; background:rgba(26,18,8,.85); border:1px solid var(--border);
+    border-radius:4px; color:var(--gold-light); font-size:1.2rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:background .15s;
+  }
+  .zoom-btn:hover { background:rgba(26,18,8,1); }
+
+  #skip-btn { opacity:.6; }
+  #skip-btn:hover { opacity:1; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div class="t-logo">Calibration Tool <small>SLEEPING GODS</small></div>
+  <div id="mode-info">Click on the map to place each location</div>
+  <div id="current-target">—</div>
+  <button class="t-btn t-btn-ghost" id="skip-btn" onclick="skipLocation()">Skip</button>
+  <button class="t-btn t-btn-ghost" onclick="undoLast()">↩ Undo</button>
+  <button class="t-btn t-btn-teal" onclick="exportCoords()">Export JSON</button>
+  <button class="t-btn t-btn-rust" onclick="resetAll()">Reset</button>
+</div>
+
+<div id="map-wrap" id="map-wrap">
+  <div id="map-inner">
+    <img id="map-img" src="../images/the-wandering-sea.svg" alt="Map" draggable="false">
+  </div>
+</div>
+
+<div id="sidebar">
+  <div class="sb-section">
+    <div class="sb-title">Progress</div>
+    <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
+    <div id="progress-text">0 / 0 placed</div>
+  </div>
+  <div class="sb-section" style="padding:10px 16px;">
+    <div class="sb-title" style="margin-bottom:6px;">Jump to location</div>
+    <input type="text" id="jump-input" placeholder="e.g. 42 or R15"
+      style="width:100%;padding:6px 10px;background:var(--parchment-dark);border:1px solid var(--border);
+             border-radius:3px;font-family:'Crimson Text',serif;font-size:.9rem;outline:none;"
+      oninput="jumpTo(this.value)">
+  </div>
+  <div id="queue-wrap"></div>
+  <div id="output-area">
+    <div class="output-header">
+      <span class="output-title">Coordinates JSON</span>
+      <button class="t-btn t-btn-ghost" style="font-size:.6rem;padding:4px 10px;" onclick="copyOutput()">Copy</button>
+    </div>
+    <textarea id="output-box" readonly></textarea>
+  </div>
+</div>
+
+<div id="zoom-ctrl">
+  <button class="zoom-btn" onclick="zoom(1.25)">+</button>
+  <button class="zoom-btn" onclick="zoom(0.8)">−</button>
+  <button class="zoom-btn" onclick="zoom(1)" title="Reset zoom">⊙</button>
+</div>
+
+<script>
+const ALL_IDS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", "150", "151", "152", "153", "154", "155", "156", "157", "158", "159", "160", "161", "162", "163", "164", "165", "166", "167", "168", "169", "170", "171", "172", "173", "174", "175", "176", "177", "178", "179", "180", "181", "182", "183", "184", "185", "186", "187", "188", "189", "190", "191", "192", "193", "194", "195", "196", "197", "198", "199", "200", "201", "202", "203", "204", "205", "206", "207", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "218", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15", "R16", "R17", "R18", "R19", "R20", "R21", "R22", "R23", "R24", "R25", "R26", "R27", "R28", "R29", "R30", "R31", "R32", "R33", "R34", "R35", "R36", "R37", "R38", "R39", "R40", "R41", "R42", "R43", "R44", "R45", "R46", "R47", "R48", "R49", "R50", "R51", "R52", "R53", "R54", "R55", "R56", "R57", "R58", "R59", "R60", "R61", "R62", "R63", "R64", "R65", "R66", "R67", "R68", "R69", "R70", "R71", "R72", "R73", "R74", "R75", "R76", "R77", "R78", "R79", "R80", "R81", "R82", "R83", "R84", "R85", "R86", "R87", "R88", "R89", "R90", "R91", "R92", "R93", "R94", "R95", "R96", "R97", "R98", "R99", "R100"];
+
+// Load saved coords from localStorage (v2 = new SVG map)
+let coords = JSON.parse(localStorage.getItem('sg_calib_v2') || '{}');
+let currentIndex = 0;
+let scale = 1;
+const BASE_WIDTH = 1180; // approx natural image width
+
+function getUnplacedIndex() {
+  for (let i = 0; i < ALL_IDS.length; i++) {
+    if (!coords[ALL_IDS[i]]) return i;
+  }
+  return ALL_IDS.length;
+}
+
+function init() {
+  currentIndex = getUnplacedIndex();
+  renderQueue();
+  renderPins();
+  updateTarget();
+  updateOutput();
+  updateProgress();
+
+  const mapWrap = document.getElementById('map-wrap');
+  const mapImg  = document.getElementById('map-img');
+
+  // Set initial zoom to fit
+  mapImg.addEventListener('load', () => {
+    const ww = mapWrap.offsetWidth;
+    scale = ww / mapImg.naturalWidth;
+    applyZoom();
+  });
+  if (mapImg.complete) {
+    const ww = mapWrap.offsetWidth;
+    scale = ww / mapImg.naturalWidth;
+    applyZoom();
+  }
+
+  mapWrap.addEventListener('click', onMapClick);
+  mapWrap.addEventListener('mousemove', onMouseMove);
+}
+
+function applyZoom() {
+  const img = document.getElementById('map-img');
+  img.style.width = (img.naturalWidth * scale) + 'px';
+  renderPins();
+}
+
+function zoom(factor) {
+  if (factor === 1) {
+    const mapWrap = document.getElementById('map-wrap');
+    const img = document.getElementById('map-img');
+    scale = mapWrap.offsetWidth / img.naturalWidth;
+  } else {
+    scale = Math.min(Math.max(scale * factor, 0.3), 4);
+  }
+  applyZoom();
+}
+
+function onMouseMove(e) {
+  // no crosshair needed, cursor:crosshair handles it
+}
+
+function onMapClick(e) {
+  if (currentIndex >= ALL_IDS.length) return;
+  const inner = document.getElementById('map-inner');
+  const rect  = inner.getBoundingClientRect();
+  const imgW  = document.getElementById('map-img').offsetWidth;
+  const imgH  = document.getElementById('map-img').offsetHeight;
+
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+  const xPct = (px / imgW * 100);
+  const yPct = (py / imgH * 100);
+
+  const id = ALL_IDS[currentIndex];
+  coords[id] = { x: +xPct.toFixed(2), y: +yPct.toFixed(2) };
+  localStorage.setItem('sg_calib_v2', JSON.stringify(coords));
+
+  currentIndex++;
+  // Skip to next unplaced
+  while (currentIndex < ALL_IDS.length && coords[ALL_IDS[currentIndex]]) currentIndex++;
+
+  renderPins();
+  renderQueue();
+  updateTarget();
+  updateOutput();
+  updateProgress();
+  scrollQueueToCurrent();
+}
+
+function skipLocation() {
+  if (currentIndex >= ALL_IDS.length) return;
+  currentIndex++;
+  while (currentIndex < ALL_IDS.length && coords[ALL_IDS[currentIndex]]) currentIndex++;
+  renderQueue();
+  updateTarget();
+  scrollQueueToCurrent();
+}
+
+function undoLast() {
+  // Find the last placed
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    if (coords[ALL_IDS[i]]) {
+      delete coords[ALL_IDS[i]];
+      localStorage.setItem('sg_calib_v2', JSON.stringify(coords));
+      currentIndex = i;
+      renderPins();
+      renderQueue();
+      updateTarget();
+      updateOutput();
+      updateProgress();
+      scrollQueueToCurrent();
+      return;
+    }
+  }
+}
+
+function jumpTo(val) {
+  const v = val.trim().toUpperCase();
+  const idx = ALL_IDS.indexOf(v);
+  if (idx === -1) return;
+  currentIndex = idx;
+  renderQueue();
+  updateTarget();
+  scrollQueueToCurrent();
+}
+
+function renderPins() {
+  const inner = document.getElementById('map-inner');
+  inner.querySelectorAll('.pin').forEach(p => p.remove());
+  const imgW = document.getElementById('map-img').offsetWidth;
+  const imgH = document.getElementById('map-img').offsetHeight;
+
+  ALL_IDS.forEach((id, i) => {
+    if (!coords[id]) return;
+    const pin = document.createElement('div');
+    pin.className = 'pin pin-placed';
+    pin.title = id;
+    pin.textContent = id;
+    pin.style.left = (coords[id].x / 100 * imgW) + 'px';
+    pin.style.top  = (coords[id].y / 100 * imgH) + 'px';
+    // Click placed pin to re-place it
+    pin.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentIndex = i;
+      renderQueue();
+      updateTarget();
+      scrollQueueToCurrent();
+    });
+    inner.appendChild(pin);
+  });
+
+  // Active pin ghost (show where next click will land - show at last known mouse)
+}
+
+function renderQueue() {
+  const wrap = document.getElementById('queue-wrap');
+  wrap.innerHTML = '';
+  ALL_IDS.forEach((id, i) => {
+    const div = document.createElement('div');
+    const placed = !!coords[id];
+    const isCurrent = i === currentIndex;
+    div.className = 'queue-item' + (placed ? ' done' : '') + (isCurrent ? ' current' : '');
+    div.innerHTML = `
+      <div class="qi-dot"></div>
+      <div class="qi-num">${id}</div>
+      ${placed ? `<div class="qi-xy">${coords[id].x.toFixed(1)}%, ${coords[id].y.toFixed(1)}%</div>` : ''}
+    `;
+    div.addEventListener('click', () => {
+      currentIndex = i;
+      renderQueue();
+      updateTarget();
+      scrollQueueToCurrent();
+    });
+    wrap.appendChild(div);
+  });
+}
+
+function scrollQueueToCurrent() {
+  const wrap = document.getElementById('queue-wrap');
+  const items = wrap.querySelectorAll('.queue-item');
+  if (items[currentIndex]) {
+    items[currentIndex].scrollIntoView({block:'center', behavior:'smooth'});
+  }
+}
+
+function updateTarget() {
+  const el = document.getElementById('current-target');
+  if (currentIndex >= ALL_IDS.length) {
+    el.textContent = '✓ Done!';
+    document.getElementById('mode-info').textContent = 'All locations placed!';
+  } else {
+    el.textContent = 'Place: ' + ALL_IDS[currentIndex];
+    document.getElementById('mode-info').textContent = 'Click map to place location ' + ALL_IDS[currentIndex];
+  }
+}
+
+function updateProgress() {
+  const placed = Object.keys(coords).length;
+  const total  = ALL_IDS.length;
+  const pct    = total ? (placed / total * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = placed + ' / ' + total + ' placed';
+}
+
+function updateOutput() {
+  const lines = Object.entries(coords).map(([id, pos]) =>
+    `  {id:"${id}",x:${pos.x},y:${pos.y}}`
+  );
+  document.getElementById('output-box').value = '[\n' + lines.join(',\n') + '\n]';
+}
+
+function exportCoords() {
+  const data = Object.entries(coords).map(([id, pos]) => ({id, x:pos.x, y:pos.y}));
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sg_map_coords.json';
+  a.click();
+}
+
+function copyOutput() {
+  const box = document.getElementById('output-box');
+  box.select();
+  document.execCommand('copy');
+  const btn = event.currentTarget;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 1500);
+}
+
+function resetAll() {
+  if (!confirm('Reset ALL placed coordinates? This cannot be undone.')) return;
+  coords = {};
+  localStorage.removeItem('sg_calib_v2');
+  currentIndex = 0;
+  renderPins();
+  renderQueue();
+  updateTarget();
+  updateOutput();
+  updateProgress();
+}
+
+init();
+</script>
+</body>
+</html>

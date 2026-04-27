@@ -1,11 +1,18 @@
-const CACHE = 'sleeping-gods-v9';
+const CACHE = 'sleeping-gods-v10';
 const FILES = [
   '/SleepingGods/index.html',
   '/SleepingGods/app.js',
   '/SleepingGods/style.css',
   '/SleepingGods/manifest.json',
-  '/SleepingGods/icon-192.png',
-  '/SleepingGods/icon-512.png'
+  '/SleepingGods/images/icon-192.png',
+  '/SleepingGods/images/icon-512.png',
+  '/SleepingGods/images/the-wandering-sea.svg',
+  '/SleepingGods/images/blood-ruins.jpg',
+  '/SleepingGods/images/caldera-fortress.jpg',
+  '/SleepingGods/images/coral-temple.jpg',
+  '/SleepingGods/images/crypt-of-thorns.jpg',
+  '/SleepingGods/images/desert-grotto.jpg',
+  '/SleepingGods/images/fishbone-vault.jpg'
 ];
 
 self.addEventListener('install', e => {
