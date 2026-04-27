@@ -1777,7 +1777,7 @@ function renderAchievements() {
   const total        = totemCount + endingCount;
 
   const cardsEl = document.getElementById('ach-unlocked-cards');
-  cardsEl.innerHTML = `<div style="font-size:.8rem;color:#7a6040;margin-bottom:8px;font-style:italic;">
+  cardsEl.innerHTML = `<div style="font-size:.8rem;color:#5c4820;margin-bottom:8px;font-style:italic;">
     ${totemCount} totem${totemCount!==1?'s':''} + ${endingCount} ending${endingCount!==1?'s':''} = <strong>${total}</strong> total</div>`;
 
   UNLOCKED_CARD_THRESHOLDS.forEach(row => {
@@ -1827,7 +1827,7 @@ function _buildKwEditor() {
     const isOpt=OPTIONAL_QUEST_NUMS.has(i);
     row.innerHTML=`<span class="kw-editor-num">${i}</span>
       <input class="kw-editor-input" id="kwe-${i}" value="${questKeywords[i]||''}"
-        placeholder="keyword..." ${isOpt?'style="color:#9a8060;font-style:italic;"':''}>`;
+        placeholder="keyword..." ${isOpt?'style="color:#6e5838;font-style:italic;"':''}>`;
     list.appendChild(row);
   }
 }
@@ -2292,6 +2292,18 @@ const OPTIONAL_RULE_DEFS = [
   { num: 180, label: 'Advanced Search Card – Aggressively' },
 ];
 
+// Groups that must be selected together
+const OPT_GROUPS = [
+  { nums: [168],           label: 'Deadly Combat' },
+  { nums: [169, 170],      label: 'Expert Port' },
+  { nums: [171, 172],      label: 'Cargo Bay' },
+  { nums: [173],           label: 'Advanced Ability Cards' },
+  { nums: [174],           label: 'Dynamite (Optional Item)' },
+  { nums: [175],           label: 'Advanced Market' },
+  { nums: [176, 177],      label: 'Heroics Track' },
+  { nums: [178, 179, 180], label: 'Advanced Search' },
+];
+
 // Track which optional rules are checked on home screen
 let selectedOptionals = new Set();
 
@@ -2301,22 +2313,26 @@ function renderHomeOptionals() {
   grid.innerHTML = '';
   const unlocked = getUnlockedOptionalNums();
 
-  OPTIONAL_RULE_DEFS.forEach(def => {
-    const isUnlocked = unlocked.has(def.num);
+  OPT_GROUPS.forEach(group => {
+    const isUnlocked = group.nums.every(n => unlocked.has(n));
+    const isChecked  = isUnlocked && group.nums.every(n => selectedOptionals.has(n));
     const row = document.createElement('div');
-    row.className = 'home-opt-row' + (selectedOptionals.has(def.num) && isUnlocked ? ' checked' : '');
-    row.dataset.num = def.num;
+    row.className = 'home-opt-row' + (isChecked ? ' checked' : '');
 
-    const lockIcon = isUnlocked ? '' : ' 🔒';
+    const qLabel = group.nums.length === 1
+      ? `Q${group.nums[0]}`
+      : `Q${group.nums[0]}–${group.nums[group.nums.length - 1]}`;
+
     row.innerHTML = `
       <div class="home-opt-check">${isUnlocked ? '✓' : ''}</div>
-      <span class="home-opt-label" style="${isUnlocked?'':'color:#7a6060;font-style:italic;'}">${lockIcon} Q${def.num} – ${def.label}</span>`;
+      <span class="home-opt-label" style="${isUnlocked ? '' : 'color:#5c4040;font-style:italic;'}">
+        ${isUnlocked ? '' : '🔒 '}${qLabel} – ${group.label}
+      </span>`;
 
     if (isUnlocked) {
       row.onclick = () => {
         const checked = row.classList.toggle('checked');
-        if (checked) selectedOptionals.add(def.num);
-        else selectedOptionals.delete(def.num);
+        group.nums.forEach(n => checked ? selectedOptionals.add(n) : selectedOptionals.delete(n));
       };
     }
     grid.appendChild(row);
@@ -2814,7 +2830,7 @@ function musicShuffle(arr) {
 
 function musicBuildAtlasPlaylist() {
   music.playlist = musicShuffle(musicTracks.exploration);
-  music.idx = 0;
+  music.idx = music.playlist.length ? Math.floor(Math.random() * music.playlist.length) : 0;
 }
 
 function musicBuildDungeonPlaylist(slug) {
@@ -2916,9 +2932,12 @@ function musicToggleMute() {
   musicUpdateUI();
 }
 
+let _savedAtlas = null;
+
 function musicEnterDungeon(dungeonName) {
   const slug = MUSIC_DUNGEON_SLUGS[dungeonName];
   if (!slug || !(musicTracks.dungeon[slug]?.length)) return;
+  if (music.mode === 'atlas') _savedAtlas = { playlist: [...music.playlist], idx: music.idx };
   music.mode = 'dungeon';
   music.currentSlug = slug;
   musicBuildDungeonPlaylist(slug);
@@ -2929,7 +2948,13 @@ function musicEnterDungeon(dungeonName) {
 function musicExitDungeon() {
   music.mode = 'atlas';
   music.currentSlug = null;
-  musicBuildAtlasPlaylist();
+  if (_savedAtlas?.playlist.length) {
+    music.playlist = _savedAtlas.playlist;
+    music.idx = (_savedAtlas.idx + 1) % _savedAtlas.playlist.length;
+    _savedAtlas = null;
+  } else {
+    musicBuildAtlasPlaylist();
+  }
   if (music.playing) { musicLoadCurrent(); musicAudio.play().catch(() => {}); }
   musicUpdateUI();
 }
@@ -2944,7 +2969,13 @@ musicAudio.addEventListener('ended', () => {
     return;
   }
   if (!music.playlist.length) return;
-  music.idx = (music.idx + 1) % music.playlist.length;
+  const next = music.idx + 1;
+  if (next >= music.playlist.length) {
+    music.playlist = musicShuffle(music.playlist);
+    music.idx = 0;
+  } else {
+    music.idx = next;
+  }
   musicLoadCurrent();
   musicAudio.play().catch(() => {});
 });

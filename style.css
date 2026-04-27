@@ -4,9 +4,10 @@
   --rust:#7a2e10; --teal:#1a5555; --teal-light:#256868;
   --green:#2a7a2a; --green-light:#3a9a3a;
   --shadow:rgba(26,18,8,0.22); --border:#c4a96a; --nav-h:52px;
-  --muted:#7a6040; --muted-lt:#9a8060; --sea:#c5e8f5;
+  --muted:#5c4820; --muted-lt:#6e5838; --sea:#c5e8f5;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{font-size:18px;}
 html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;background:#0d0a05;color:var(--ink);}
 
 /* NAV */
@@ -40,7 +41,8 @@ body.nav-hidden .panel{top:0;}
 /* ── MAP ── */
 #map-container{flex:1;overflow:auto;position:relative;cursor:crosshair;}
 #map-img-wrap{position:relative;display:inline-block;min-width:100%;--pin-s:1;background:var(--sea);}
-#map-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
+#map-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;
+  filter:contrast(1.12) saturate(1.08);}
 
 .loc-pin.sea-loc{border-color:rgba(30,100,200,.45);}
 
@@ -604,7 +606,7 @@ body.nav-hidden .panel{top:0;}
   font-family:'Crimson Text',serif;font-size:.92rem;color:var(--ink);line-height:1.3;
 }
 .ach-tag {
-  font-size:.68rem;color:#8a7040;font-style:italic;
+  font-size:.68rem;color:var(--muted);font-style:italic;
 }
 
 /* Endings grid */
@@ -763,9 +765,8 @@ body.nav-hidden .panel{top:0;}
 #music-ctrl button:hover{background:rgba(180,134,11,.15);color:var(--gold-light);border-color:var(--gold-light);}
 #music-ctrl button.active{background:var(--gold);border-color:var(--gold);color:var(--ink);}
 #music-ctrl button.muted{color:var(--rust);border-color:var(--rust);}
-#music-track-title{font-family:'Crimson Text',serif;font-size:.75rem;color:var(--muted);
-  font-style:italic;margin-left:4px;white-space:nowrap;overflow:hidden;
-  max-width:140px;text-overflow:ellipsis;}
+#music-track-title{font-family:'Crimson Text',serif;font-size:.75rem;color:rgba(196,169,106,.65);
+  font-style:italic;margin-left:4px;}
 
 /* ── SHIP PIN ── */
 .ship-pin{position:absolute;transform:translate(-50%,-50%);
@@ -879,7 +880,7 @@ body.nav-hidden .panel{top:0;}
 .session-entry{background:var(--parchment-mid);border:1px solid rgba(196,169,106,.3);border-radius:4px;padding:8px 10px;}
 .session-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
 .session-date{font-family:'Cinzel',serif;font-size:.68rem;color:var(--gold-light);letter-spacing:.06em;}
-.session-del{background:transparent;border:none;color:#9a7060;cursor:pointer;font-size:.85rem;padding:0 2px;}
+.session-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 2px;}
 .session-del:hover{color:var(--rust);}
 .session-note-text{font-family:'Crimson Text',serif;font-size:.88rem;color:var(--ink);line-height:1.4;}
 
