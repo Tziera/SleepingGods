@@ -779,6 +779,7 @@ function initMap() {
       pin.title = 'Location '+loc.id;
       const d = state.locations[loc.id];
       if(d?.keywords?.length || d?.note) pin.classList.add('has-data');
+      if(d?.blockedKeywords?.length) pin.classList.add('has-blocked');
       if(SEA_LOCATIONS.has(loc.id)) pin.classList.add('sea-loc');
       if(DUNGEON_LOCATIONS.has(loc.id)) {
         pin.classList.add('dungeon');
@@ -892,6 +893,7 @@ function updateHighlights() {
     const d = state.locations[id];
     pin.classList.remove('highlighted');
     pin.classList.toggle('has-data', !!(d?.keywords?.length || d?.note));
+    pin.classList.toggle('has-blocked', !!(d?.blockedKeywords?.length));
     if(DUNGEON_LOCATIONS.has(id)) pin.classList.add('dungeon');
     if(d?.keywords?.length) {
       const locKWs = d.keywords.map(k=>k.toUpperCase());
@@ -936,23 +938,16 @@ function openPopup(locId) {
     dungeonBtn.style.display = 'none';
   }
 
-  // Ship location button
-  let shipBtn = document.getElementById('popup-ship-btn');
-  if (!shipBtn) {
-    shipBtn = document.createElement('button');
-    shipBtn.id = 'popup-ship-btn';
-    shipBtn.className = 'btn-ship-loc';
-    document.querySelector('.popup-header').insertBefore(shipBtn, document.getElementById('loc-popup').querySelector('.popup-close'));
-  }
-  shipBtn.onclick = () => setShipLocation(locId);
-  updateShipPopupBtn();
-
   renderPopup();
   document.getElementById('loc-popup').classList.add('open');
   const inp = document.getElementById('kw-input');
   inp.value='';
   inp.oninput = onKwInput;
   inp.onkeydown = e=>{ if(e.key==='Enter') addKeyword(); };
+  const blockedInp = document.getElementById('kw-blocked-input');
+  blockedInp.value = '';
+  blockedInp.oninput = onKwBlockedInput;
+  blockedInp.onkeydown = e=>{ if(e.key==='Enter') addBlockedKeyword(); };
   document.getElementById('loc-note').onblur = ()=>{
     if(!state.locations[currentLocId]) state.locations[currentLocId]={keywords:[],note:''};
     state.locations[currentLocId].note = document.getElementById('loc-note').value;
@@ -1073,6 +1068,26 @@ function selectSuggestion(kw) {
   addKeyword();
 }
 
+function onKwBlockedInput() {
+  const v = document.getElementById('kw-blocked-input').value.trim().toUpperCase();
+  const sug = document.getElementById('kw-blocked-suggest');
+  if (v.length < 2) { sug.style.display='none'; return; }
+  const allKWs = Object.values(questKeywords);
+  const matches = allKWs.filter(k => k.toUpperCase().startsWith(v));
+  if (matches.length === 1 && matches[0].toUpperCase() !== v) {
+    sug.innerHTML = `<div class="kw-suggest-item" onclick="selectBlockedSuggestion('${matches[0]}')">${matches[0]}</div>`;
+    sug.style.display = 'block';
+  } else {
+    sug.style.display = 'none';
+  }
+}
+
+function selectBlockedSuggestion(kw) {
+  document.getElementById('kw-blocked-input').value = kw;
+  document.getElementById('kw-blocked-suggest').style.display = 'none';
+  addBlockedKeyword();
+}
+
 function addKeyword() {
   const inp = document.getElementById('kw-input');
   const val = inp.value.trim().toUpperCase();
@@ -1092,6 +1107,24 @@ function removeKeyword(idx) {
   save(); renderPopup(); updateHighlights();
 }
 
+function addBlockedKeyword() {
+  const inp = document.getElementById('kw-blocked-input');
+  const val = inp.value.trim().toUpperCase();
+  if(!val) return;
+  if(!state.locations[currentLocId]) state.locations[currentLocId]={keywords:[],note:''};
+  if(!state.locations[currentLocId].blockedKeywords) state.locations[currentLocId].blockedKeywords=[];
+  if(!state.locations[currentLocId].blockedKeywords.includes(val))
+    state.locations[currentLocId].blockedKeywords.push(val);
+  save(); renderPopup(); updateHighlights();
+  inp.value=''; inp.focus();
+}
+
+function removeBlockedKeyword(idx) {
+  if(!state.locations[currentLocId]?.blockedKeywords) return;
+  state.locations[currentLocId].blockedKeywords.splice(idx,1);
+  save(); renderPopup(); updateHighlights();
+}
+
 function renderPopup() {
   const d = state.locations[currentLocId]||{keywords:[],note:''};
   const chips = document.getElementById('kw-chips');
@@ -1101,12 +1134,20 @@ function renderPopup() {
     c.innerHTML=`${kw} <button class="kw-chip-del" onclick="removeKeyword(${i})">✕</button>`;
     chips.appendChild(c);
   });
+  const blocked = document.getElementById('kw-blocked-chips');
+  blocked.innerHTML='';
+  (d.blockedKeywords||[]).forEach((kw,i)=>{
+    const c=document.createElement('div'); c.className='kw-chip kw-chip--blocked';
+    c.innerHTML=`${kw} <button class="kw-chip-del" onclick="removeBlockedKeyword(${i})">✕</button>`;
+    blocked.appendChild(c);
+  });
   document.getElementById('loc-note').value = d.note||'';
 }
 
 function closePopup() {
   document.getElementById('loc-popup').classList.remove('open');
   document.getElementById('kw-suggest').style.display='none';
+  document.getElementById('kw-blocked-suggest').style.display='none';
   currentLocId=null;
 }
 
@@ -1205,8 +1246,14 @@ function openQA(q) {
     });
   });
   const locs=(kwToLocs[kw.toUpperCase()]||[]);
-  document.getElementById('qa-match-info').textContent=
-    locs.length ? '📍 Keyword found at location(s): '+locs.join(', ') : '';
+  const matchEl = document.getElementById('qa-match-info');
+  if (locs.length) {
+    matchEl.innerHTML = '📍 Found at: ' + locs.map(id =>
+      `<button class="qa-loc-btn" onclick="closeQA();showPanel('map',document.querySelector('.nav-tab'));jumpToLocation('${id}')">${id}</button>`
+    ).join(' ');
+  } else {
+    matchEl.textContent = '';
+  }
   // Hide Complete for optional rules
   const isOpt = OPTIONAL_QUEST_NUMS.has(q.num);
   document.getElementById('qa-complete-btn').style.display = isOpt ? 'none' : '';
@@ -1267,8 +1314,15 @@ function doQA(action) {
     window._optMode=false;
     if(action==='discard' && qaOptQuest) {
       pushUndo();
-      state.activeOptional=state.activeOptional.filter(q=>q.num!==qaOptQuest.num);
-      state.discardedOptional.push(qaOptQuest);
+      // Discard the whole group if this quest belongs to one
+      const group = OPT_GROUPS.find(g => g.nums.includes(qaOptQuest.num));
+      const toDiscard = new Set(group ? group.nums : [qaOptQuest.num]);
+      state.activeOptional = state.activeOptional.filter(q => !toDiscard.has(q.num));
+      state.activeQuests   = state.activeQuests.filter(q => !toDiscard.has(q.num));
+      toDiscard.forEach(n => {
+        const existing = state.discardedOptional.find(q => q.num === n);
+        if (!existing) state.discardedOptional.push({ num: n });
+      });
       save(); closeQA(); renderOptional(); updateOptTab(); qaOptQuest=null;
     } else { closeQA(); qaOptQuest=null; }
     return;
@@ -1457,8 +1511,8 @@ function renderLog() {
   document.getElementById('log-date-end').value=log.dateEnd||'';
   document.getElementById('log-players').value=log.players||'';
   document.getElementById('log-ship-loc').value=log.shipLocation||'';
-  document.getElementById('diff-normal').className='diff-btn'+(log.difficulty==='Normal'?' sel-normal':'');
-  document.getElementById('diff-brutal').className='diff-btn'+(log.difficulty==='Brutal'?' sel-brutal':'');
+  const diffEl=document.getElementById('log-difficulty-display');
+  if(diffEl) diffEl.textContent=log.difficulty||'Normal';
 
   // Next player dropdown
   const npSel=document.getElementById('log-next-player');
@@ -1568,7 +1622,12 @@ function changeCmd(p,d) {
   state.log.commandTokens[p]=Math.max(0,(state.log.commandTokens[p]||0)+d);
   save(); renderLog();
 }
-function setDiff(d) { state.log.difficulty=d; save(); renderLog(); }
+let homeDifficulty = 'Normal';
+function setHomeDiff(d) {
+  homeDifficulty = d;
+  document.getElementById('home-diff-normal').className='diff-btn'+(d==='Normal'?' sel-normal':'');
+  document.getElementById('home-diff-brutal').className='diff-btn'+(d==='Brutal'?' sel-brutal':'');
+}
 function setEvt(n) { state.log.eventDeck=n; save();
   [1,2,3].forEach(i=>document.getElementById('evt-'+i).classList.toggle('active',i===n));
 }
@@ -1833,6 +1892,7 @@ function _buildKwEditor() {
 }
 
 function saveKwEdits() {
+  const oldKeywords = {...questKeywords};
   for(let i=1;i<=218;i++) {
     const inp=document.getElementById('kwe-'+i);
     if(inp && inp.value.trim()) questKeywords[i]=inp.value.trim().toUpperCase();
@@ -1842,7 +1902,23 @@ function saveKwEdits() {
     if (questKeywords[j] !== QUEST_KEYWORDS_DEFAULT[j]) kwDiffs[j] = questKeywords[j];
   }
   localStorage.setItem('sg_kw_edits', JSON.stringify(kwDiffs));
-  // hide after save
+
+  // Propagate renamed keywords to existing location data
+  let locChanged = false;
+  Object.values(state.locations).forEach(loc => {
+    if (!loc.keywords) return;
+    loc.keywords = loc.keywords.map(kw => {
+      const upper = kw.toUpperCase();
+      const questNum = Object.keys(oldKeywords).find(k => oldKeywords[k] === upper);
+      if (questNum && questKeywords[questNum] && questKeywords[questNum] !== upper) {
+        locChanged = true;
+        return questKeywords[questNum];
+      }
+      return kw;
+    });
+  });
+  if (locChanged) save();
+
   kwEditorVisible=false;
   document.getElementById('kw-editor-wrap').style.display='none';
   document.getElementById('kw-toggle-btn').textContent='Show Keyword List';
@@ -1983,13 +2059,11 @@ function openEndingPicker() {
   document.getElementById('ending-picker-overlay').classList.add('open');
 }
 
+let pickedEndingNum = null;
+
 function pickEnding(num) {
   document.getElementById('ending-picker-overlay').classList.remove('open');
-  if (num !== null) {
-    const s = getAchievementState();
-    s.endings[num] = true;
-    saveAchievementState(s);
-  }
+  pickedEndingNum = num;
   doFinish();
 }
 
@@ -2065,6 +2139,7 @@ function doFinish() {
 
 function closeScore() {
   document.getElementById('score-overlay').classList.remove('open');
+  pickedEndingNum = null;
 }
 
 // ═══════════════════════════════════
@@ -2183,6 +2258,13 @@ function saveScoreAndGoHome() {
   state.campaignFinished = true;
   save();
 
+  if (pickedEndingNum !== null) {
+    const s = getAchievementState();
+    s.endings[pickedEndingNum] = true;
+    saveAchievementState(s);
+    pickedEndingNum = null;
+  }
+  selectedOptionals.clear();
   closeScore();
   musicStop();
   goHome();
@@ -2201,6 +2283,7 @@ function cancelCampaign() {
       state.campaignFinished = true;
       save();
       campaignActive = false;
+      selectedOptionals.clear();
       musicStop();
       goHome();
     }, true
@@ -2358,6 +2441,7 @@ function _doStartNewCampaign() {
   state = defaultState();
   state.locations = prevLocations;
   state.log.dateStart = today;
+  state.log.difficulty = homeDifficulty;
 
   // Add selected optional rules as active
   selectedOptionals.forEach(num => {
@@ -2369,11 +2453,16 @@ function _doStartNewCampaign() {
 
   save();
   campaignActive = true;
+  selectedOptionals.clear();
+  homeDifficulty = 'Normal';
+  setHomeDiff('Normal');
   updateNavBadges();
   hideHome();
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector('.nav-tab').classList.add('active');
-  showPanel('map', document.querySelector('.nav-tab'));
+  const logTab = [...document.querySelectorAll('.nav-tab')].find(t => t.textContent.includes('Journey Log'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  if (logTab) logTab.classList.add('active');
+  showPanel('log', logTab || document.querySelector('.nav-tab'));
+  renderLog();
   updateOptTab();
   musicStartExploration();
   requestWakeLock();
@@ -2656,6 +2745,11 @@ goHome();
 
 initMap();
 initLogListeners();
+document.getElementById('map-container').addEventListener('click', e => {
+  if (e.target === e.currentTarget || e.target.id === 'map-img-wrap' || e.target.id === 'map-img') {
+    if (document.getElementById('loc-popup').classList.contains('open')) closePopup();
+  }
+});
 updateOptTab();
 applyTheme(localStorage.getItem('sg_theme') || 'system');
 updateUndoUI();
@@ -2890,6 +2984,8 @@ function musicStop() {
   musicAudio.src = '';
   music.playing = false;
   music.isIntro = false;
+  music.muted = false;
+  musicAudio.muted = false;
   music.pendingStart = false;
   const btn = document.getElementById('home-music-btn');
   if (btn) btn.innerHTML = '&#9654; Intro Music';
