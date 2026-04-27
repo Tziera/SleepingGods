@@ -35,6 +35,7 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
   background-image:radial-gradient(ellipse at 15% 0%,#f0e2c0,transparent 55%),
                    radial-gradient(ellipse at 85% 100%,#ddc898,transparent 55%);}
 .panel.active{display:flex;flex-direction:column;}
+body.nav-hidden .panel{top:0;}
 
 /* ── MAP ── */
 #map-container{flex:1;overflow:auto;position:relative;cursor:crosshair;}
@@ -107,12 +108,20 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 }
 #dungeon-viewer-close:hover{border-color:var(--rust);color:var(--rust);}
 .dv-music-ctrl{display:flex;align-items:center;gap:5px;}
+.dv-zoom-ctrl{display:flex;align-items:center;gap:3px;margin-right:4px;}
+.dv-zoom-btn{font-size:.85rem;width:26px;height:26px;background:transparent;
+  color:var(--border);border:1px solid rgba(196,169,106,.35);border-radius:3px;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.dv-zoom-btn:hover{border-color:var(--gold);color:var(--gold-light);}
 .dv-music-btn{font-size:.95rem;padding:6px 10px;background:transparent;
   color:var(--border);border:1px solid rgba(196,169,106,.35);border-radius:3px;
   cursor:pointer;transition:all .2s;line-height:1;}
 .dv-music-btn:hover{border-color:var(--gold);color:var(--gold-light);}
 .dv-music-btn.active{color:var(--gold-light);}
 .dv-music-btn.muted{color:var(--muted);}
+#dv-music-track-title{font-family:'Crimson Text',serif;font-size:.8rem;color:var(--border);
+  font-style:italic;margin-left:4px;white-space:nowrap;overflow:hidden;
+  max-width:160px;text-overflow:ellipsis;}
 
 #dungeon-viewer-img-wrap {
   flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;
@@ -493,6 +502,14 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
   padding:10px 36px;margin-top:4px;}
 .home-btn-music:hover{border-color:#9a6aba;color:#c090e0;}
 .home-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none;}
+.home-btn-settings{background:transparent;border:1.5px solid var(--border);color:var(--border);
+  font-size:.75rem;padding:10px 36px;margin-top:4px;}
+.home-btn-settings:hover{border-color:var(--gold-light);color:var(--gold-light);}
+.settings-back-btn{font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:.08em;
+  background:transparent;border:1px solid var(--border);color:var(--border);
+  border-radius:3px;padding:8px 16px;cursor:pointer;margin-bottom:16px;
+  display:block;transition:all .2s;}
+.settings-back-btn:hover{border-color:var(--gold-light);color:var(--gold-light);}
 .campaign-info{font-family:'Crimson Text',serif;font-size:.78rem;color:var(--muted-lt);
   font-style:italic;text-align:center;margin-top:-4px;margin-bottom:16px;
   width:220px;max-width:100%;min-height:1em;}
@@ -746,6 +763,9 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 #music-ctrl button:hover{background:rgba(180,134,11,.15);color:var(--gold-light);border-color:var(--gold-light);}
 #music-ctrl button.active{background:var(--gold);border-color:var(--gold);color:var(--ink);}
 #music-ctrl button.muted{color:var(--rust);border-color:var(--rust);}
+#music-track-title{font-family:'Crimson Text',serif;font-size:.75rem;color:var(--muted);
+  font-style:italic;margin-left:4px;white-space:nowrap;overflow:hidden;
+  max-width:140px;text-overflow:ellipsis;}
 
 /* ── SHIP PIN ── */
 .ship-pin{position:absolute;transform:translate(-50%,-50%);

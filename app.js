@@ -643,10 +643,10 @@ function defaultState() {
 
 let state = loadState();
 let campaignActive = (state !== null); // true when a real campaign is in progress
-// Quest keywords – may be edited by user
-let questKeywords = JSON.parse(localStorage.getItem('sg_kw_edits') || 'null') || {...QUEST_KEYWORDS_DEFAULT};
-// Convert numeric keys back
-questKeywords = Object.fromEntries(Object.entries(questKeywords).map(([k,v])=>[parseInt(k),v]));
+// Quest keywords – merged from defaults + only stored diffs (backward-compatible with full-object format)
+const _kwDiffs = JSON.parse(localStorage.getItem('sg_kw_edits') || '{}');
+let questKeywords = {...QUEST_KEYWORDS_DEFAULT};
+Object.entries(_kwDiffs).forEach(([k, v]) => { questKeywords[parseInt(k)] = v; });
 
 // Leaderboard stored separately (persists across campaigns)
 let leaderboard = JSON.parse(localStorage.getItem('sg_leaderboard') || '[]');
@@ -748,10 +748,17 @@ function mapZoom(factor) {
   if (factor === 0) {
     mapScale = container.offsetWidth / img.naturalWidth;
     defaultMapScale = mapScale;
-  } else {
-    mapScale = Math.min(Math.max(mapScale * factor, 0.4), 4);
+    img.style.width = (img.naturalWidth * mapScale) + 'px';
+    placePins();
+    return;
   }
+  // Preserve the viewport center across the zoom
+  const cx = (container.scrollLeft + container.offsetWidth  / 2) / img.offsetWidth;
+  const cy = (container.scrollTop  + container.offsetHeight / 2) / img.offsetHeight;
+  mapScale = Math.min(Math.max(mapScale * factor, 0.4), 4);
   img.style.width = (img.naturalWidth * mapScale) + 'px';
+  container.scrollLeft = cx * img.offsetWidth  - container.offsetWidth  / 2;
+  container.scrollTop  = cy * img.offsetHeight - container.offsetHeight / 2;
   placePins();
 }
 
@@ -953,15 +960,39 @@ function openPopup(locId) {
   };
 }
 
+let dungeonScale = 1;
+
 function openDungeonViewer(locId) {
   const dungeon = DUNGEON_MAPS[locId];
   if (!dungeon) return;
   currentDungeonLocId = locId;
+  dungeonScale = 1;
+  const img = document.getElementById('dungeon-viewer-img');
+  img.style.width = '';
+  img.style.maxWidth = '100%';
   document.getElementById('dungeon-viewer-title').textContent = '☠ ' + dungeon.name;
-  document.getElementById('dungeon-viewer-img').src = dungeon.img;
+  img.src = dungeon.img;
   document.getElementById('dungeon-viewer').classList.add('open');
   updateDungeonExploredBtn(locId);
   musicEnterDungeon(dungeon.name);
+}
+
+function dungeonZoom(factor) {
+  const wrap = document.getElementById('dungeon-viewer-img-wrap');
+  const img  = document.getElementById('dungeon-viewer-img');
+  if (factor === 0) {
+    dungeonScale = 1;
+    img.style.width = '';
+    img.style.maxWidth = '100%';
+    return;
+  }
+  if (dungeonScale === 1) img.style.maxWidth = 'none';
+  const cx = (wrap.scrollLeft + wrap.offsetWidth  / 2) / img.offsetWidth;
+  const cy = (wrap.scrollTop  + wrap.offsetHeight / 2) / img.offsetHeight;
+  dungeonScale = Math.min(Math.max(dungeonScale * factor, 0.5), 5);
+  img.style.width = (img.naturalWidth * dungeonScale) + 'px';
+  wrap.scrollLeft = cx * img.offsetWidth  - wrap.offsetWidth  / 2;
+  wrap.scrollTop  = cy * img.offsetHeight - wrap.offsetHeight / 2;
 }
 
 function closeDungeonViewer() {
@@ -1127,7 +1158,8 @@ function renderQuests() {
 
   // Build unlock dropdown – regular quests only (optional rules are in their own tab)
   const sel=document.getElementById('unlock-sel');
-  const prev=sel.value; sel.innerHTML='';
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— Select quest number —</option>';
   const unlocked=new Set(state.unlockedNums);
   let hasOptions=false;
   for(let i=1;i<=218;i++) {
@@ -1138,7 +1170,7 @@ function renderQuests() {
       sel.appendChild(o); hasOptions=true;
     }
   }
-  if(!hasOptions) sel.innerHTML='<option>All quests unlocked!</option>';
+  if(!hasOptions) sel.innerHTML='<option value="">All quests unlocked!</option>';
   if(prev) sel.value=prev;
 }
 
@@ -1153,6 +1185,7 @@ function unlockQuest() {
       state.activeQuests.push({num});
       state.unlockedNums.push(num);
       save(); renderQuests(); updateHighlights();
+      document.getElementById('unlock-sel').value = '';
     }, false);
 }
 
@@ -1361,6 +1394,7 @@ function confirmAdv() {
   state.adventureCards.push({num:pendingAdvNum, totem:isTotem});
   autoFillCardAchievements(pendingAdvNum);
   save(); renderAdv(); pendingAdvNum=null;
+  document.getElementById('adv-sel').value = '';
 }
 
 function autoFillCardAchievements(num) {
@@ -1429,7 +1463,7 @@ function renderLog() {
   // Next player dropdown
   const npSel=document.getElementById('log-next-player');
   npSel.innerHTML='<option value="">— Select —</option>';
-  const pNames=getPlayerNames();
+  const pNames=getPlayerNames().slice(0,4);
   pNames.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;npSel.appendChild(o);});
   npSel.value=log.nextPlayer||'';
 
@@ -1803,7 +1837,11 @@ function saveKwEdits() {
     const inp=document.getElementById('kwe-'+i);
     if(inp && inp.value.trim()) questKeywords[i]=inp.value.trim().toUpperCase();
   }
-  localStorage.setItem('sg_kw_edits', JSON.stringify(questKeywords));
+  const kwDiffs = {};
+  for (let j = 1; j <= 218; j++) {
+    if (questKeywords[j] !== QUEST_KEYWORDS_DEFAULT[j]) kwDiffs[j] = questKeywords[j];
+  }
+  localStorage.setItem('sg_kw_edits', JSON.stringify(kwDiffs));
   // hide after save
   kwEditorVisible=false;
   document.getElementById('kw-editor-wrap').style.display='none';
@@ -1861,6 +1899,17 @@ function saveAdvEdits() {
   }
   localStorage.setItem('sg_adv_edits', JSON.stringify(advNameEdits));
   localStorage.setItem('sg_adv_type_edits', JSON.stringify(advTypeEdits));
+
+  // Sync totem flag for cards already in the active campaign
+  if (state && state.adventureCards) {
+    let dirty = false;
+    state.adventureCards.forEach(card => {
+      const isTotem = getAdvTypes(card.num).includes('Totem');
+      if (card.totem !== isTotem) { card.totem = isTotem; dirty = true; }
+    });
+    if (dirty) save();
+  }
+
   advEditorVisible = false;
   document.getElementById('adv-editor-wrap').style.display = 'none';
   document.getElementById('adv-toggle-btn').textContent = 'Show Card List';
@@ -2028,9 +2077,12 @@ function exportData() {
     sg_state:        localStorage.getItem('sg_state'),
     sg_achievements: localStorage.getItem('sg_achievements'),
     sg_leaderboard:  localStorage.getItem('sg_leaderboard'),
-    sg_kw_edits:     localStorage.getItem('sg_kw_edits'),
+    sg_kw_edits:       localStorage.getItem('sg_kw_edits'),
     sg_adv_edits:      localStorage.getItem('sg_adv_edits'),
     sg_adv_type_edits: localStorage.getItem('sg_adv_type_edits'),
+    sg_theme:          localStorage.getItem('sg_theme'),
+    sg_wakelock:       localStorage.getItem('sg_wakelock'),
+    sg_autoplay:       localStorage.getItem('sg_autoplay'),
   };
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], {type:'application/json'});
@@ -2046,29 +2098,33 @@ function exportData() {
 
 function importData(event) {
   const file = event.target.files[0];
-  const fb = document.getElementById('import-feedback');
   if (!file) return;
+  const fb = document.getElementById('import-feedback');
   const reader = new FileReader();
   reader.onload = e => {
     try {
       const backup = JSON.parse(e.target.result);
       if (!backup.version) throw new Error('Invalid backup file');
-      if (backup.sg_state)        localStorage.setItem('sg_state',        backup.sg_state);
-      if (backup.sg_achievements) localStorage.setItem('sg_achievements', backup.sg_achievements);
-      if (backup.sg_leaderboard)  localStorage.setItem('sg_leaderboard',  backup.sg_leaderboard);
-      if (backup.sg_kw_edits)     localStorage.setItem('sg_kw_edits',     backup.sg_kw_edits);
+      if (backup.sg_state)          localStorage.setItem('sg_state',          backup.sg_state);
+      if (backup.sg_achievements)   localStorage.setItem('sg_achievements',   backup.sg_achievements);
+      if (backup.sg_leaderboard)    localStorage.setItem('sg_leaderboard',    backup.sg_leaderboard);
+      if (backup.sg_kw_edits)       localStorage.setItem('sg_kw_edits',       backup.sg_kw_edits);
       if (backup.sg_adv_edits)      localStorage.setItem('sg_adv_edits',      backup.sg_adv_edits);
       if (backup.sg_adv_type_edits) localStorage.setItem('sg_adv_type_edits', backup.sg_adv_type_edits);
-      fb.className = 'import-feedback ok';
-      fb.textContent = `✓ Backup from ${backup.exported?.split('T')[0]||'unknown date'} imported! Reloading…`;
+      if (backup.sg_theme)          localStorage.setItem('sg_theme',          backup.sg_theme);
+      if (backup.sg_wakelock)       localStorage.setItem('sg_wakelock',       backup.sg_wakelock);
+      if (backup.sg_autoplay)       localStorage.setItem('sg_autoplay',       backup.sg_autoplay);
+      const msg = `✓ Backup from ${backup.exported?.split('T')[0]||'unknown date'} imported! Reloading…`;
+      if (fb) { fb.className = 'import-feedback ok'; fb.textContent = msg; }
+      else showToast(msg, 'ok');
       setTimeout(() => location.reload(), 1200);
     } catch(err) {
-      fb.className = 'import-feedback err';
-      fb.textContent = '✕ Invalid backup file. No changes made.';
+      const msg = '✕ Invalid backup file. No changes made.';
+      if (fb) { fb.className = 'import-feedback err'; fb.textContent = msg; }
+      else showToast(msg, 'warn');
     }
   };
   reader.readAsText(file);
-  // Reset input so same file can be re-selected
   event.target.value = '';
 }
 
@@ -2158,6 +2214,10 @@ function goHome() {
   document.getElementById('panel-home').classList.remove('hidden');
   const continueBtn = document.getElementById('btn-continue');
   if (continueBtn) continueBtn.disabled = !campaignActive;
+  document.getElementById('nav').style.display = '';
+  document.body.classList.remove('nav-hidden');
+  const backBtn = document.getElementById('settings-back-btn');
+  if (backBtn) backBtn.style.display = 'none';
   renderCampaignInfo();
   renderLeaderboard();
   renderHomeOptionals();
@@ -2182,6 +2242,20 @@ function renderCampaignInfo() {
 
 function hideHome() {
   document.getElementById('panel-home').classList.add('hidden');
+  document.getElementById('nav').style.display = '';
+  document.body.classList.remove('nav-hidden');
+}
+
+function openSettingsFromHome() {
+  hideHome();
+  document.getElementById('nav').style.display = 'none';
+  document.body.classList.add('nav-hidden');
+  const settingsTab = [...document.querySelectorAll('.nav-tab')].find(t => t.textContent.trim() === '⚙');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  if (settingsTab) settingsTab.classList.add('active');
+  showPanel('settings', settingsTab);
+  const backBtn = document.getElementById('settings-back-btn');
+  if (backBtn) backBtn.style.display = '';
 }
 
 function renderLeaderboard() {
@@ -2250,6 +2324,19 @@ function renderHomeOptionals() {
 }
 
 function startNewCampaign() {
+  if (campaignActive) {
+    showDlg(
+      'Start New Campaign?',
+      'You have an active campaign. Starting a new one will permanently erase all progress. Continue?',
+      _doStartNewCampaign,
+      true
+    );
+    return;
+  }
+  _doStartNewCampaign();
+}
+
+function _doStartNewCampaign() {
   const today = new Date().toISOString().split('T')[0];
   const prevLocations = state ? state.locations : {};
   state = defaultState();
@@ -2266,6 +2353,7 @@ function startNewCampaign() {
 
   save();
   campaignActive = true;
+  updateNavBadges();
   hideHome();
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.querySelector('.nav-tab').classList.add('active');
@@ -2796,16 +2884,19 @@ async function musicStartExploration() {
   music.isIntro = false;
   const btn = document.getElementById('home-music-btn');
   if (btn) btn.innerHTML = '&#9654; Intro Music';
-  if (!autoplayEnabled) return;
   if (!musicTracks.exploration.length) {
-    // musicInit() still scanning – await it (still within browser user-gesture window)
-    music.pendingStart = true;
+    if (autoplayEnabled) music.pendingStart = true;
     await musicInitPromise;
     music.pendingStart = false;
     if (music.playing) return;
   }
   musicBuildAtlasPlaylist();
   musicLoadCurrent();
+  if (!autoplayEnabled) {
+    if (music.playing) { musicAudio.pause(); music.playing = false; }
+    musicUpdateUI();
+    return;
+  }
   musicAudio.play().catch(() => {});
   music.playing = true;
   musicUpdateUI();
@@ -2816,6 +2907,7 @@ function musicNext() {
   music.idx = (music.idx + 1) % music.playlist.length;
   musicLoadCurrent();
   if (music.playing) musicAudio.play().catch(() => {});
+  musicUpdateUI();
 }
 
 function musicToggleMute() {
@@ -2857,6 +2949,20 @@ musicAudio.addEventListener('ended', () => {
   musicAudio.play().catch(() => {});
 });
 
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+
+function musicGetTrackTitle() {
+  if (music.isIntro) return 'Wake the Sleeping Gods';
+  if (!music.playlist.length || !music.playlist[music.idx]) return '';
+  const filename = music.playlist[music.idx].split('/').pop().replace(/\.[^.]+$/, '');
+  const noPrefix = filename.replace(/^(exploration|dungeon)-/, '');
+  const variant  = noPrefix.slice(-1);
+  const slug     = noPrefix.slice(0, -2);
+  const title    = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const roman    = ROMAN['abcdefghij'.indexOf(variant)] || variant.toUpperCase();
+  return `${title} ${roman}`;
+}
+
 function musicUpdateUI() {
   const playIcon  = music.playing ? '&#9646;&#9646;' : '&#9654;';
   const playTitle = music.playing ? 'Pause music' : 'Play music';
@@ -2864,18 +2970,22 @@ function musicUpdateUI() {
   const muteTitle = music.muted  ? 'Unmute' : 'Mute';
 
   // Nav bar controls
-  const playBtn = document.getElementById('music-btn-play');
-  const muteBtn = document.getElementById('music-btn-mute');
+  const playBtn  = document.getElementById('music-btn-play');
+  const muteBtn  = document.getElementById('music-btn-mute');
   const modeIcon = document.getElementById('music-mode-icon');
-  if (playBtn) { playBtn.innerHTML = playIcon; playBtn.title = playTitle; playBtn.classList.toggle('active', music.playing); }
-  if (muteBtn) { muteBtn.innerHTML = muteIcon; muteBtn.title = muteTitle; muteBtn.classList.toggle('muted', music.muted); }
+  const titleEl  = document.getElementById('music-track-title');
+  if (playBtn)  { playBtn.innerHTML = playIcon; playBtn.title = playTitle; playBtn.classList.toggle('active', music.playing); }
+  if (muteBtn)  { muteBtn.innerHTML = muteIcon; muteBtn.title = muteTitle; muteBtn.classList.toggle('muted', music.muted); }
   if (modeIcon) { modeIcon.textContent = music.mode === 'dungeon' ? '☠' : '⚓'; modeIcon.title = music.mode === 'dungeon' ? 'Dungeon music' : 'Atlas music'; }
+  if (titleEl)  { titleEl.textContent = music.playing ? musicGetTrackTitle() : ''; }
 
   // Dungeon viewer controls
-  const dvPlay = document.getElementById('dv-music-btn-play');
-  const dvMute = document.getElementById('dv-music-btn-mute');
-  if (dvPlay) { dvPlay.innerHTML = playIcon; dvPlay.title = playTitle; dvPlay.classList.toggle('active', music.playing); }
-  if (dvMute) { dvMute.innerHTML = muteIcon; dvMute.title = muteTitle; dvMute.classList.toggle('muted', music.muted); }
+  const dvPlay  = document.getElementById('dv-music-btn-play');
+  const dvMute  = document.getElementById('dv-music-btn-mute');
+  const dvTitle = document.getElementById('dv-music-track-title');
+  if (dvPlay)  { dvPlay.innerHTML = playIcon; dvPlay.title = playTitle; dvPlay.classList.toggle('active', music.playing); }
+  if (dvMute)  { dvMute.innerHTML = muteIcon; dvMute.title = muteTitle; dvMute.classList.toggle('muted', music.muted); }
+  if (dvTitle) { dvTitle.textContent = music.playing ? musicGetTrackTitle() : ''; }
 }
 
 musicInitPromise = musicInit();
