@@ -53,7 +53,7 @@ body.nav-hidden .panel{top:0;}
 .loc-pin.has-data{background:rgba(30,80,160,.28);border-color:rgba(30,100,200,.7);}
 .loc-pin.has-data::after{content:'';width:calc(7px * var(--pin-s));height:calc(7px * var(--pin-s));border-radius:50%;
   background:#3a6fc4;display:block;margin:auto;margin-top:calc(4px * var(--pin-s));}
-.loc-pin.has-blocked{box-shadow:0 0 0 2px rgba(122,46,16,.55);}
+.loc-pin.has-blocked{outline:2.5px solid rgba(180,60,20,.85);outline-offset:2px;}
 .loc-pin.dungeon::before {
   content:'☠';
   position:absolute;
@@ -204,9 +204,11 @@ body.nav-hidden .panel{top:0;}
 .kw-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 .popup-kw-section{margin-bottom:10px;}
 .popup-kw-section--blocked{border-top:1px solid var(--border);padding-top:10px;}
+.popup-kw-section--received{border-top:1px solid var(--border);padding-top:10px;}
 .popup-kw-label{font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.1em;
   color:var(--muted);display:block;margin-bottom:6px;}
 .popup-kw-label--blocked{color:var(--rust);}
+.popup-kw-label--received{color:var(--green);}
 .kw-chip{background:var(--parchment);border:1px solid var(--border);
   border-radius:20px;padding:4px 12px;font-size:.88rem;color:var(--teal);
   display:flex;align-items:center;gap:8px;}
@@ -216,6 +218,11 @@ body.nav-hidden .panel{top:0;}
 .kw-input--blocked:focus{border-color:var(--rust)!important;}
 .btn-blocked{background:var(--rust)!important;border-color:var(--rust)!important;}
 .btn-blocked:hover{background:#a03818!important;}
+.kw-chip--received{background:rgba(42,122,42,.06);border-color:rgba(42,122,42,.35);color:var(--green);}
+.kw-input--received{border-color:rgba(42,122,42,.35);}
+.kw-input--received:focus{border-color:var(--green)!important;}
+.btn-received{background:var(--green)!important;border-color:var(--green)!important;}
+.btn-received:hover{background:#1e5e1e!important;}
 .kw-chip-del{background:none;border:none;cursor:pointer;color:#aaa;font-size:.75rem;line-height:1;padding:0;}
 .kw-chip-del:hover{color:var(--rust);}
 .note-label{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.1em;

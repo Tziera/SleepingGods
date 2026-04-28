@@ -893,7 +893,9 @@ function updateHighlights() {
     const d = state.locations[id];
     pin.classList.remove('highlighted');
     pin.classList.toggle('has-data', !!(d?.keywords?.length || d?.note));
-    pin.classList.toggle('has-blocked', !!(d?.blockedKeywords?.length));
+    const blockedKWs = (d?.blockedKeywords||[]).map(k=>k.toUpperCase());
+    const hasBlockedMatch = blockedKWs.length > 0 && state.activeQuests.some(q => blockedKWs.includes(questKeywords[q.num]?.toUpperCase()));
+    pin.classList.toggle('has-blocked', hasBlockedMatch);
     if(DUNGEON_LOCATIONS.has(id)) pin.classList.add('dungeon');
     if(d?.keywords?.length) {
       const locKWs = d.keywords.map(k=>k.toUpperCase());
@@ -948,6 +950,10 @@ function openPopup(locId) {
   blockedInp.value = '';
   blockedInp.oninput = onKwBlockedInput;
   blockedInp.onkeydown = e=>{ if(e.key==='Enter') addBlockedKeyword(); };
+  const receivedInp = document.getElementById('kw-received-input');
+  receivedInp.value = '';
+  receivedInp.oninput = onKwReceivedInput;
+  receivedInp.onkeydown = e=>{ if(e.key==='Enter') addReceivedKeyword(); };
   document.getElementById('loc-note').onblur = ()=>{
     if(!state.locations[currentLocId]) state.locations[currentLocId]={keywords:[],note:''};
     state.locations[currentLocId].note = document.getElementById('loc-note').value;
@@ -1125,6 +1131,44 @@ function removeBlockedKeyword(idx) {
   save(); renderPopup(); updateHighlights();
 }
 
+function onKwReceivedInput() {
+  const v = document.getElementById('kw-received-input').value.trim().toUpperCase();
+  const sug = document.getElementById('kw-received-suggest');
+  if (v.length < 2) { sug.style.display='none'; return; }
+  const allKWs = Object.values(questKeywords);
+  const matches = allKWs.filter(k => k.toUpperCase().startsWith(v));
+  if (matches.length === 1 && matches[0].toUpperCase() !== v) {
+    sug.innerHTML = `<div class="kw-suggest-item" onclick="selectReceivedSuggestion('${matches[0]}')">${matches[0]}</div>`;
+    sug.style.display = 'block';
+  } else {
+    sug.style.display = 'none';
+  }
+}
+
+function selectReceivedSuggestion(kw) {
+  document.getElementById('kw-received-input').value = kw;
+  document.getElementById('kw-received-suggest').style.display = 'none';
+  addReceivedKeyword();
+}
+
+function addReceivedKeyword() {
+  const inp = document.getElementById('kw-received-input');
+  const val = inp.value.trim().toUpperCase();
+  if(!val) return;
+  if(!state.locations[currentLocId]) state.locations[currentLocId]={keywords:[],note:''};
+  if(!state.locations[currentLocId].receivedKeywords) state.locations[currentLocId].receivedKeywords=[];
+  if(!state.locations[currentLocId].receivedKeywords.includes(val))
+    state.locations[currentLocId].receivedKeywords.push(val);
+  save(); renderPopup(); updateHighlights();
+  inp.value=''; inp.focus();
+}
+
+function removeReceivedKeyword(idx) {
+  if(!state.locations[currentLocId]?.receivedKeywords) return;
+  state.locations[currentLocId].receivedKeywords.splice(idx,1);
+  save(); renderPopup(); updateHighlights();
+}
+
 function renderPopup() {
   const d = state.locations[currentLocId]||{keywords:[],note:''};
   const chips = document.getElementById('kw-chips');
@@ -1141,6 +1185,13 @@ function renderPopup() {
     c.innerHTML=`${kw} <button class="kw-chip-del" onclick="removeBlockedKeyword(${i})">✕</button>`;
     blocked.appendChild(c);
   });
+  const received = document.getElementById('kw-received-chips');
+  received.innerHTML='';
+  (d.receivedKeywords||[]).forEach((kw,i)=>{
+    const c=document.createElement('div'); c.className='kw-chip kw-chip--received';
+    c.innerHTML=`${kw} <button class="kw-chip-del" onclick="removeReceivedKeyword(${i})">✕</button>`;
+    received.appendChild(c);
+  });
   document.getElementById('loc-note').value = d.note||'';
 }
 
@@ -1148,6 +1199,7 @@ function closePopup() {
   document.getElementById('loc-popup').classList.remove('open');
   document.getElementById('kw-suggest').style.display='none';
   document.getElementById('kw-blocked-suggest').style.display='none';
+  document.getElementById('kw-received-suggest').style.display='none';
   currentLocId=null;
 }
 

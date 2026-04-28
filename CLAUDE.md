@@ -5,6 +5,12 @@ A PWA (Progressive Web App) that serves as a campaign tracker for the board game
 
 The app is split across three files – `index.html` (structure), `style.css` (all styles), and `app.js` (all logic). There are no build tools, no frameworks, no npm. Just vanilla HTML/CSS/JS.
 
+## Dev Server
+Always start the local dev server at the beginning of each session:
+```
+node server.js
+```
+
 ## Tech Stack
 - **Vanilla HTML5 / CSS3 / JavaScript** – no frameworks, no bundler
 - **Three-file architecture** – `index.html` (HTML), `style.css` (CSS), `app.js` (JS)
