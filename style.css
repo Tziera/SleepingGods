@@ -347,9 +347,9 @@ body.nav-hidden .panel{top:0;}
 .diff-btns{display:flex;gap:8px;}
 .diff-btn{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.1em;
   padding:7px 16px;border:1.5px solid var(--border);border-radius:3px;
-  background:var(--parchment);cursor:pointer;color:var(--ink);transition:all .2s;}
-.diff-btn.sel-normal{background:#d0e8d0;border-color:var(--green);color:var(--green);}
-.diff-btn.sel-brutal{background:#f0d8d0;border-color:var(--rust);color:var(--rust);}
+  background:var(--parchment);cursor:pointer;color:var(--muted);opacity:.55;transition:all .2s;}
+.diff-btn.sel-normal{background:var(--green);border-color:var(--green);color:#fff;opacity:1;font-weight:700;box-shadow:0 2px 6px rgba(42,122,42,.35);}
+.diff-btn.sel-brutal{background:var(--rust);border-color:var(--rust);color:#fff;opacity:1;font-weight:700;box-shadow:0 2px 6px rgba(122,46,16,.35);}
 .log-difficulty-display{font-family:'Cinzel',serif;font-size:.8rem;color:var(--ink);
   padding:6px 0;letter-spacing:.06em;}
 .qa-loc-btn{font-family:'Cinzel',serif;font-size:.78rem;background:transparent;
