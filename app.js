@@ -604,29 +604,6 @@ const CARD_TO_ACH = {
 
 // Maps card# → exact key in TOTEMS_LIST where card name differs from list name
 const CARD_TO_TOTEM = {47: 'Stone of the Mind', 75: 'Stone of the Wind', 90: 'Stone of the Wind & Waves'};
-
-// ── ATLAS (play map spreads) ──────────────────────────────────────────────────
-// Each spread is identified by its left page number (always even).
-// Navigation values are left-page numbers of destination spreads.
-// upp/ner apply to both halves (left and right side land on matching half of dest).
-// Spread 30 has no edges – reached via teleport only.
-const ATLAS_SPREADS = {
-  '02': { left: '12', right: '04', upp: '16', ner: '08' },
-  '04': { left: '02', right: null, upp: '22', ner: '10' },
-  '06': { left: null, right: '08', upp: '12', ner: '24' },
-  '08': { left: '06', right: '10', upp: '02', ner: '26' },
-  '10': { left: '08', right: null, upp: '04', ner: '28' },
-  '12': { left: null, right: '02', upp: '14', ner: '06' },
-  '14': { left: null, right: '16', upp: null, ner: '12' },
-  '16': { left: '14', right: '22', upp: '18', ner: '02' },
-  '18': { left: null, right: null, upp: null, ner: '16' },
-  '22': { left: '16', right: null, upp: null, ner: '04' },
-  '24': { left: null, right: '26', upp: '06', ner: null },
-  '26': { left: '24', right: '28', upp: '08', ner: null },
-  '28': { left: '26', right: null, upp: '10', ner: null },
-  '30': { left: null, right: null, upp: null, ner: null },
-};
-
 // Dungeons expansion – locations with a dungeon entrance
 const DUNGEON_LOCATIONS = new Set(['52','92','104','146','181','217']);
 const SEA_LOCATIONS = new Set(['R51','R46','R96','R81','R39','R98','11','16','17','25','59','79','92','96','114','116','141','144','171','195','207']);
@@ -697,147 +674,7 @@ function loadState() {
 
 function save() {
   localStorage.setItem('sg_state', JSON.stringify(state));
-  pushToFirebase();
 }
-
-// ═══════════════════════════════════
-// FIREBASE / ONLINE MODE
-// ═══════════════════════════════════
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDVQtl5Qja333EkpMwg46orwJqDjCDztsw",
-  authDomain: "sleeping-gods-tracker.firebaseapp.com",
-  databaseURL: "https://sleeping-gods-tracker-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "sleeping-gods-tracker",
-  storageBucket: "sleeping-gods-tracker.firebasestorage.app",
-  messagingSenderId: "736215153567",
-  appId: "1:736215153567:web:cede07dafaad188c6cdbaa"
-};
-
-let db = null;
-let onlineMode = false;
-let campaignCode = null;
-let remoteListener = null;
-let applyingRemote = false;
-let firebasePushTimer = null;
-
-function initFirebase() {
-  if (db) return;
-  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-  db = firebase.database();
-}
-
-function generateCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
-
-function createOnlineCampaign() {
-  initFirebase();
-  const code = generateCode();
-  db.ref(`campaigns/${code}`).set({
-    state: JSON.stringify(state),
-    achievements: localStorage.getItem('sg_achievements') || '{}'
-  }).then(() => {
-    activateOnlineMode(code);
-    showToast(`Campaign created! Code: ${code}`, 'ok');
-  }).catch(() => showToast('Failed to create online campaign', 'warn'));
-}
-
-function joinOnlineCampaign() {
-  initFirebase();
-  const code = document.getElementById('online-code-input').value.trim().toUpperCase();
-  if (code.length < 4) { showToast('Enter a campaign code', 'warn'); return; }
-  db.ref(`campaigns/${code}/state`).once('value').then(snap => {
-    if (!snap.exists()) { showToast('Campaign not found', 'warn'); return; }
-    applyingRemote = true;
-    applyRemoteState(JSON.parse(snap.val()));
-    applyingRemote = false;
-    activateOnlineMode(code);
-    showToast(`Joined campaign ${code}`, 'ok');
-    if (campaignActive) {
-      hideHome();
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      document.querySelector('.nav-tab').classList.add('active');
-      showPanel('map', document.querySelector('.nav-tab'));
-      musicStartExploration();
-      requestWakeLock();
-    }
-  }).catch(() => showToast('Could not connect to campaign', 'warn'));
-}
-
-function activateOnlineMode(code) {
-  onlineMode = true;
-  campaignCode = code;
-  if (remoteListener) { remoteListener.off(); remoteListener = null; }
-  remoteListener = db.ref(`campaigns/${code}/state`);
-  remoteListener.on('value', snap => {
-    if (!snap.exists() || applyingRemote) return;
-    applyingRemote = true;
-    applyRemoteState(JSON.parse(snap.val()));
-    applyingRemote = false;
-  });
-  updateOnlineBadge();
-}
-
-function leaveOnlineCampaign() {
-  if (remoteListener) { remoteListener.off(); remoteListener = null; }
-  onlineMode = false;
-  campaignCode = null;
-  updateOnlineBadge();
-  showToast('Disconnected – playing offline', 'info');
-}
-
-function applyRemoteState(remoteState) {
-  state = remoteState;
-  campaignActive = (state !== null);
-  localStorage.setItem('sg_state', JSON.stringify(state));
-  const activePanel = document.querySelector('.panel.active');
-  if (activePanel) {
-    showPanel(activePanel.id.replace('panel-', ''));
-  } else {
-    renderCampaignInfo();
-    const continueBtn = document.getElementById('btn-continue');
-    if (continueBtn) continueBtn.disabled = !campaignActive;
-  }
-}
-
-function pushToFirebase() {
-  if (!onlineMode || applyingRemote || !db || !campaignCode) return;
-  clearTimeout(firebasePushTimer);
-  firebasePushTimer = setTimeout(() => {
-    db.ref(`campaigns/${campaignCode}/state`).set(JSON.stringify(state)).catch(console.error);
-  }, 400);
-}
-
-function updateOnlineBadge() {
-  const badge = document.getElementById('online-badge');
-  const codeEl = document.getElementById('online-badge-code');
-  const homeStatus = document.getElementById('online-home-status');
-  const homeCode = document.getElementById('online-home-code');
-  if (onlineMode && campaignCode) {
-    if (badge) { codeEl.textContent = `🌐 ${campaignCode}`; badge.style.display = 'flex'; }
-    if (homeStatus) { homeCode.textContent = `🌐 Online · ${campaignCode}`; homeStatus.style.display = 'flex'; }
-  } else {
-    if (badge) badge.style.display = 'none';
-    if (homeStatus) homeStatus.style.display = 'none';
-  }
-}
-
-function copyOnlineCode() {
-  if (!campaignCode) return;
-  navigator.clipboard.writeText(campaignCode)
-    .then(() => showToast('Code copied!', 'ok'))
-    .catch(() => showToast(campaignCode, 'info'));
-}
-
-function updateOnlineSection() {
-  const section = document.getElementById('home-online-section');
-  if (section) section.style.display = navigator.onLine ? '' : 'none';
-}
-window.addEventListener('online', updateOnlineSection);
-window.addEventListener('offline', updateOnlineSection);
 
 // ═══════════════════════════════════
 // UNDO
@@ -889,7 +726,6 @@ function showPanel(name, btn) {
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('panel-'+name).classList.add('active');
   if(btn) btn.classList.add('active');
-  if(name==='atlas') renderAtlas();
   if(name==='quests') renderQuests();
   if(name==='adv') renderAdv();
   if(name==='log') renderLog();
@@ -1365,108 +1201,6 @@ function closePopup() {
   document.getElementById('kw-blocked-suggest').style.display='none';
   document.getElementById('kw-received-suggest').style.display='none';
   currentLocId=null;
-}
-
-// ═══════════════════════════════════
-// ATLAS
-// ═══════════════════════════════════
-let currentAtlasSpread = '02';
-let currentAtlasSide = 'left';
-let atlasHistory = [];
-let atlasScale = 1;
-
-function atlasArrowSVG(shape, pageNum) {
-  const cfg = {
-    right: { d:'M4,4 L54,28 L4,52 L16,28 Z',  tx:10, ty:28 },
-    left:  { d:'M52,4 L2,28 L52,52 L40,28 Z',  tx:46, ty:28 },
-    upp:   { d:'M4,52 L28,2 L52,52 L28,40 Z',  tx:28, ty:46 },
-    ner:   { d:'M4,4 L28,54 L52,4 L28,16 Z',   tx:28, ty:10 },
-  };
-  const c = cfg[shape];
-  return `<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
-    <path d="${c.d}" fill="rgba(8,6,2,.78)" stroke="#b8860b" stroke-width="1.5" stroke-linejoin="round"/>
-    <text x="${c.tx}" y="${c.ty}" text-anchor="middle" dominant-baseline="middle"
-      font-family="Cinzel,serif" font-size="13" font-weight="700" fill="#d4a820">${pageNum}</text>
-  </svg>`;
-}
-
-function renderAtlas() {
-  const spread = ATLAS_SPREADS[currentAtlasSpread];
-  const lp = parseInt(currentAtlasSpread);
-  document.getElementById('atlas-label').textContent = `Pages ${lp}–${lp + 1}`;
-  const img = document.getElementById('atlas-img');
-  img.src = `images/atlas/map-${currentAtlasSpread}.webp`;
-  img.style.width = (200 * atlasScale) + '%';
-
-  // Left → land on right side of dest, show its right page
-  const setArr = (id, show, svg) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.classList.toggle('hidden', !show);
-    if (show) btn.innerHTML = svg;
-  };
-
-  const ld = spread.left,  rd = spread.right;
-  const ud = spread.upp,   nd = spread.ner;
-  setArr('atlas-arr-left',  ld, atlasArrowSVG('left',  parseInt(ld) + 1));
-  setArr('atlas-arr-right', rd, atlasArrowSVG('right', parseInt(rd)));
-  setArr('atlas-arr-upp-l', ud, atlasArrowSVG('upp',   parseInt(ud)));
-  setArr('atlas-arr-upp-r', ud, atlasArrowSVG('upp',   parseInt(ud) + 1));
-  setArr('atlas-arr-ner-l', nd, atlasArrowSVG('ner',   parseInt(nd)));
-  setArr('atlas-arr-ner-r', nd, atlasArrowSVG('ner',   parseInt(nd) + 1));
-
-  const backBtn = document.getElementById('atlas-back-btn');
-  if (backBtn) backBtn.disabled = atlasHistory.length === 0;
-
-  requestAnimationFrame(() => {
-    const vp = document.getElementById('atlas-viewport');
-    if (!vp) return;
-    vp.scrollLeft = currentAtlasSide === 'right' ? vp.scrollWidth / 2 : 0;
-  });
-}
-
-function atlasNavigate(dir) {
-  const spreadDir = dir.replace(/-[lr]$/, '');
-  const side = dir.endsWith('-r') ? 'right'
-             : dir.endsWith('-l') ? 'left'
-             : dir === 'right'    ? 'left'
-             : 'right'; // dir === 'left'
-  const dest = ATLAS_SPREADS[currentAtlasSpread]?.[spreadDir];
-  if (!dest) return;
-  atlasHistory.push({ spread: currentAtlasSpread, side: currentAtlasSide });
-  currentAtlasSpread = dest;
-  currentAtlasSide = side;
-  renderAtlas();
-}
-
-function atlasZoom(factor) {
-  if (factor === 0) atlasScale = 1;
-  else atlasScale = Math.max(0.5, Math.min(6, atlasScale * factor));
-  const img = document.getElementById('atlas-img');
-  if (img) img.style.width = (200 * atlasScale) + '%';
-}
-
-function atlasGoBack() {
-  if (!atlasHistory.length) return;
-  const prev = atlasHistory.pop();
-  currentAtlasSpread = prev.spread;
-  currentAtlasSide = prev.side;
-  renderAtlas();
-}
-
-function atlasJumpToPage() {
-  const raw = document.getElementById('atlas-jump-input').value.trim();
-  const page = parseInt(raw);
-  if (isNaN(page) || page < 2) { showToast('Ange ett sidnummer', 'warn'); return; }
-  const leftPage = page % 2 === 0 ? page : page - 1;
-  const side = page % 2 === 0 ? 'left' : 'right';
-  const spreadId = String(leftPage).padStart(2, '0');
-  if (!ATLAS_SPREADS[spreadId]) { showToast(`Sida ${page} finns inte`, 'warn'); return; }
-  atlasHistory.push({ spread: currentAtlasSpread, side: currentAtlasSide });
-  currentAtlasSpread = spreadId;
-  currentAtlasSide = side;
-  document.getElementById('atlas-jump-input').value = '';
-  renderAtlas();
 }
 
 // ═══════════════════════════════════
@@ -2623,7 +2357,6 @@ function goHome() {
   renderLeaderboard();
   renderHomeOptionals();
   releaseWakeLock();
-  updateOnlineBadge();
 }
 
 function renderCampaignInfo() {
@@ -3061,7 +2794,6 @@ if (!state) {
   state = defaultState();
 }
 goHome();
-updateOnlineSection();
 
 initMap();
 initLogListeners();
