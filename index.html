@@ -23,6 +23,7 @@
     <button class="nav-tab" onclick="showPanel('quests',this)">Quests</button>
     <button class="nav-tab" onclick="showPanel('adv',this)">Adventure</button>
     <button class="nav-tab" onclick="showPanel('log',this)">Journey Log<span class="nav-badge" id="badge-log" style="display:none;"></span></button>
+    <button class="nav-tab" id="game-nav-tab" onclick="showPanel('game',this)" style="display:none;">Game</button>
     <button class="nav-tab" id="opt-nav-tab" onclick="showPanel('optional',this)" style="display:none;">Optional Rules</button>
     <button class="nav-tab" onclick="showPanel('achievements',this)">Achievements</button>
     <button class="nav-tab" onclick="showPanel('settings',this)">⚙</button>
@@ -227,6 +228,32 @@
       <button class="btn-add-session" onclick="addSessionNote()">+ Add</button>
     </div>
     <div class="session-list" id="session-list"></div>
+  </div>
+</div>
+
+<!-- GAME AREA -->
+<div id="panel-game" class="panel">
+  <div class="game-wrap">
+
+    <div id="game-turn-banner" class="game-turn-banner" style="display:none;"></div>
+
+    <div class="game-section">
+      <div class="game-section-header">
+        <div class="game-section-title" style="margin-bottom:0;border:none;padding:0;">Ship</div>
+        <div id="game-stats-row" class="game-stats-row"></div>
+      </div>
+      <div id="game-ship-rooms" class="ship-rooms" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="game-section">
+      <div class="game-section-title">Crew</div>
+      <div id="game-crew-grid" class="game-crew-grid"></div>
+    </div>
+
+    <div class="game-section game-personal-section">
+      <div id="game-cmd-personal"></div>
+    </div>
+
   </div>
 </div>
 
