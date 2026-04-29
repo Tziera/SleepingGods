@@ -343,6 +343,15 @@ body.nav-hidden .panel{top:0;}
   display:flex;align-items:center;justify-content:center;line-height:1;transition:background .15s;}
 .crew-btn:hover{background:var(--parchment-dark);}
 .crew-val{font-family:'Cinzel',serif;font-size:.92rem;min-width:22px;text-align:center;}
+.crew-status-row{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;}
+.crew-status-chip{
+  font-family:'Cinzel',serif;font-size:.5rem;letter-spacing:.05em;
+  padding:2px 6px;border:1px solid var(--border);border-radius:10px;
+  background:none;color:var(--muted);cursor:pointer;transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.crew-status-chip:hover{border-color:var(--rust);color:var(--rust);}
+.crew-status-chip.active{background:var(--rust);border-color:var(--rust);color:#fff;}
 
 .diff-btns{display:flex;gap:8px;}
 .diff-btn{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.1em;

@@ -428,6 +428,13 @@ const LOCATIONS_DEF = [
   {id:"R81",x:98.9,y:6.59}
 ];
 const CREW_MEMBERS = ["'Mac' Mara Johnson", "Rafael Vieira", "Marco Reyes", "Kannan Sharma", "Audrie Williams", "Laurent Lapointe", "Kasumi Aoshima", "Gregory Little", "Capt. Sofi Odessa"];
+const CREW_STATUSES = [
+  { key:'venom',      label:'Venom' },
+  { key:'frightened', label:'Frightened' },
+  { key:'weakened',   label:'Weakened' },
+  { key:'madness',    label:'Madness' },
+  { key:'lowMorale',  label:'Low Morale' },
+];
 const ROOM_DEFS = [
   {id:'hull',name:'Hull',max:1},
   {id:'deck',name:'Deck',max:2},
@@ -635,6 +642,7 @@ function defaultState() {
       dateEnd:'', finalScore:'', players:'', difficulty:'Normal',
       shipLocation:'', shipLocId:'', nextPlayer:'',
       shipDamage:{}, crewDamage:{}, crewLevel:{}, commandTokens:{},
+      crewFatigue:{}, crewStatus:{},
       xp:[], defeats:[false,false,false,false,false,false], eventDeck:1,
       sessions: [],
     }
@@ -661,6 +669,8 @@ function loadState() {
     if (!s.discardedAdvCards) s.discardedAdvCards = [];
     if (!s.log.crewLevel) s.log.crewLevel = {};
     if (!s.log.commandTokens) s.log.commandTokens = {};
+    if (!s.log.crewFatigue) s.log.crewFatigue = {};
+    if (!s.log.crewStatus) s.log.crewStatus = {};
     if (!s.activeOptional) s.activeOptional = [];
     if (!s.discardedOptional) s.discardedOptional = [];
     if (!s.log.shipLocId) s.log.shipLocId = '';
@@ -1590,7 +1600,12 @@ function renderLog() {
   CREW_MEMBERS.forEach((name, idx)=>{
     const dmg=log.crewDamage[name]||0;
     const lvl=log.crewLevel[name]||0;
+    const fatigue=(log.crewFatigue||{})[name]||0;
+    const statuses=(log.crewStatus||{})[name]||{};
     const safeId=name.replace(/[^a-zA-Z0-9]/g,'_');
+    const statusChips=CREW_STATUSES.map(s=>
+      `<button class="crew-status-chip ${statuses[s.key]?'active':''}" onclick="toggleCrewStatus(${idx},'${s.key}')">${s.label}</button>`
+    ).join('');
     const d=document.createElement('div'); d.className='crew-member';
     d.innerHTML=`
       <div class="crew-name">${name}</div>
@@ -1603,6 +1618,14 @@ function renderLog() {
         </div>
       </div>
       <div class="crew-row">
+        <span class="crew-row-label">Fatigue</span>
+        <div class="crew-ctrl">
+          <button class="crew-btn" onclick="changeCrewFatigue(${idx},-1)">−</button>
+          <span class="crew-val">${fatigue}/2</span>
+          <button class="crew-btn" onclick="changeCrewFatigue(${idx},1)">+</button>
+        </div>
+      </div>
+      <div class="crew-row">
         <span class="crew-row-label">Level</span>
         <div class="crew-ctrl">
           <button class="crew-btn" onclick="changeCrewLvl(${idx},-1)">−</button>
@@ -1610,6 +1633,7 @@ function renderLog() {
           <button class="crew-btn" onclick="changeCrewLvl(${idx},1)">+</button>
         </div>
       </div>
+      <div class="crew-status-row">${statusChips}</div>
     `;
     cg.appendChild(d);
   });
@@ -1663,6 +1687,19 @@ function toggleShipDmg(roomId,box,max) {
 function changeCrewDmg(idx,d) {
   const name=CREW_MEMBERS[idx];
   state.log.crewDamage[name]=Math.max(0,(state.log.crewDamage[name]||0)+d);
+  save(); renderLog();
+}
+function changeCrewFatigue(idx,d) {
+  const name=CREW_MEMBERS[idx];
+  if(!state.log.crewFatigue) state.log.crewFatigue={};
+  state.log.crewFatigue[name]=Math.min(2,Math.max(0,(state.log.crewFatigue[name]||0)+d));
+  save(); renderLog();
+}
+function toggleCrewStatus(idx,key) {
+  const name=CREW_MEMBERS[idx];
+  if(!state.log.crewStatus) state.log.crewStatus={};
+  if(!state.log.crewStatus[name]) state.log.crewStatus[name]={};
+  state.log.crewStatus[name][key]=!state.log.crewStatus[name][key];
   save(); renderLog();
 }
 function changeCrewLvl(idx,d) {
