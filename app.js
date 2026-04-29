@@ -428,13 +428,6 @@ const LOCATIONS_DEF = [
   {id:"R81",x:98.9,y:6.59}
 ];
 const CREW_MEMBERS = ["'Mac' Mara Johnson", "Rafael Vieira", "Marco Reyes", "Kannan Sharma", "Audrie Williams", "Laurent Lapointe", "Kasumi Aoshima", "Gregory Little", "Capt. Sofi Odessa"];
-const CREW_STATUSES = [
-  { key:'venom',      label:'Venom' },
-  { key:'frightened', label:'Frightened' },
-  { key:'weakened',   label:'Weakened' },
-  { key:'madness',    label:'Madness' },
-  { key:'lowMorale',  label:'Low Morale' },
-];
 const ROOM_DEFS = [
   {id:'hull',name:'Hull',max:1},
   {id:'deck',name:'Deck',max:2},
@@ -665,11 +658,9 @@ function defaultState() {
       dateEnd:'', finalScore:'', players:'', difficulty:'Normal',
       shipLocation:'', shipLocId:'', nextPlayer:'',
       shipDamage:{}, crewDamage:{}, crewLevel:{}, commandTokens:{},
-      crewFatigue:{}, crewStatus:{},
       xp:[], defeats:[false,false,false,false,false,false], eventDeck:1,
       sessions: [],
-    },
-    game: { currentTurn:'', captainRoom:'' },
+    }
   };
 }
 
@@ -693,9 +684,6 @@ function loadState() {
     if (!s.discardedAdvCards) s.discardedAdvCards = [];
     if (!s.log.crewLevel) s.log.crewLevel = {};
     if (!s.log.commandTokens) s.log.commandTokens = {};
-    if (!s.log.crewFatigue) s.log.crewFatigue = {};
-    if (!s.log.crewStatus) s.log.crewStatus = {};
-    if (!s.game) s.game = { currentTurn:'', captainRoom:'' };
     if (!s.activeOptional) s.activeOptional = [];
     if (!s.discardedOptional) s.discardedOptional = [];
     if (!s.log.shipLocId) s.log.shipLocId = '';
@@ -731,7 +719,6 @@ let campaignCode = null;
 let remoteListener = null;
 let applyingRemote = false;
 let firebasePushTimer = null;
-let myPlayerName = localStorage.getItem('sg_my_player') || '';
 
 function initFirebase() {
   if (db) return;
@@ -836,8 +823,6 @@ function updateOnlineBadge() {
     if (badge) badge.style.display = 'none';
     if (homeStatus) homeStatus.style.display = 'none';
   }
-  const gameTab = document.getElementById('game-nav-tab');
-  if (gameTab) gameTab.style.display = (onlineMode && campaignCode) ? '' : 'none';
 }
 
 function copyOnlineCode() {
@@ -912,7 +897,6 @@ function showPanel(name, btn) {
   if(name==='achievements') renderAchievements();
   if(name==='optional') renderOptional();
   if(name==='map') { if(window.placePins) window.placePins(); else updateHighlights(); }
-  if(name==='game') renderGameArea();
 }
 
 // ═══════════════════════════════════
@@ -1872,12 +1856,7 @@ function renderLog() {
   CREW_MEMBERS.forEach((name, idx)=>{
     const dmg=log.crewDamage[name]||0;
     const lvl=log.crewLevel[name]||0;
-    const fatigue=(log.crewFatigue||{})[name]||0;
-    const statuses=(log.crewStatus||{})[name]||{};
     const safeId=name.replace(/[^a-zA-Z0-9]/g,'_');
-    const statusChips=CREW_STATUSES.map(s=>
-      `<button class="crew-status-chip ${statuses[s.key]?'active':''}" onclick="toggleCrewStatus(${idx},'${s.key}')">${s.label}</button>`
-    ).join('');
     const d=document.createElement('div'); d.className='crew-member';
     d.innerHTML=`
       <div class="crew-name">${name}</div>
@@ -1890,14 +1869,6 @@ function renderLog() {
         </div>
       </div>
       <div class="crew-row">
-        <span class="crew-row-label">Fatigue</span>
-        <div class="crew-ctrl">
-          <button class="crew-btn" onclick="changeCrewFatigue(${idx},-1)">−</button>
-          <span class="crew-val">${fatigue}/2</span>
-          <button class="crew-btn" onclick="changeCrewFatigue(${idx},1)">+</button>
-        </div>
-      </div>
-      <div class="crew-row">
         <span class="crew-row-label">Level</span>
         <div class="crew-ctrl">
           <button class="crew-btn" onclick="changeCrewLvl(${idx},-1)">−</button>
@@ -1905,7 +1876,6 @@ function renderLog() {
           <button class="crew-btn" onclick="changeCrewLvl(${idx},1)">+</button>
         </div>
       </div>
-      <div class="crew-status-row">${statusChips}</div>
     `;
     cg.appendChild(d);
   });
@@ -1954,34 +1924,21 @@ function getPlayerNames() {
 function toggleShipDmg(roomId,box,max) {
   const cur=state.log.shipDamage[roomId]||0;
   state.log.shipDamage[roomId]=(cur===box)?box-1:box;
-  save(); renderLog(); renderGameArea(); updateNavBadges();
+  save(); renderLog(); updateNavBadges();
 }
 function changeCrewDmg(idx,d) {
   const name=CREW_MEMBERS[idx];
   state.log.crewDamage[name]=Math.max(0,(state.log.crewDamage[name]||0)+d);
-  save(); renderLog(); renderGameArea();
-}
-function changeCrewFatigue(idx,d) {
-  const name=CREW_MEMBERS[idx];
-  if(!state.log.crewFatigue) state.log.crewFatigue={};
-  state.log.crewFatigue[name]=Math.min(2,Math.max(0,(state.log.crewFatigue[name]||0)+d));
-  save(); renderLog(); renderGameArea();
-}
-function toggleCrewStatus(idx,key) {
-  const name=CREW_MEMBERS[idx];
-  if(!state.log.crewStatus) state.log.crewStatus={};
-  if(!state.log.crewStatus[name]) state.log.crewStatus[name]={};
-  state.log.crewStatus[name][key]=!state.log.crewStatus[name][key];
-  save(); renderLog(); renderGameArea();
+  save(); renderLog();
 }
 function changeCrewLvl(idx,d) {
   const name=CREW_MEMBERS[idx];
   state.log.crewLevel[name]=Math.max(0,(state.log.crewLevel[name]||0)+d);
-  save(); renderLog(); renderGameArea();
+  save(); renderLog();
 }
 function changeCmd(p,d) {
   state.log.commandTokens[p]=Math.max(0,(state.log.commandTokens[p]||0)+d);
-  save(); renderLog(); renderGameArea();
+  save(); renderLog();
 }
 let homeDifficulty = 'Normal';
 function setHomeDiff(d) {
@@ -3479,225 +3436,6 @@ function musicUpdateUI() {
 }
 
 musicInitPromise = musicInit();
-
-// ═══════════════════════════════════
-// GAME AREA
-// ═══════════════════════════════════
-
-function isMyTurn() {
-  if (!onlineMode) return true;
-  if (!myPlayerName) return false;
-  return (state.game?.currentTurn || '') === myPlayerName;
-}
-
-function setMyPlayerName(name) {
-  myPlayerName = name;
-  localStorage.setItem('sg_my_player', name);
-  renderGameArea();
-  if (name) showToast(`Playing as ${name}`, 'ok');
-}
-
-function setCurrentTurn(name) {
-  if (!state.game) state.game = { currentTurn:'', captainRoom:'' };
-  state.game.currentTurn = name;
-  state.log.nextPlayer = name;
-  save(); renderGameArea(); renderLog();
-}
-
-function endTurn() {
-  const players = getPlayerNames().slice(0, 4).filter(Boolean);
-  if (!players.length) return;
-  const cur = state.game?.currentTurn || '';
-  const idx = players.indexOf(cur);
-  const next = players[(idx + 1) % players.length];
-  if (!state.game) state.game = { currentTurn:'', captainRoom:'' };
-  state.game.currentTurn = next;
-  state.game.captainRoom = '';
-  state.log.nextPlayer = next;
-  save(); renderGameArea(); renderLog();
-  showToast(`${next}'s turn`, 'info');
-}
-
-function setCaptainRoom(roomId) {
-  if (!state.game) state.game = { currentTurn:'', captainRoom:'' };
-  state.game.captainRoom = (state.game.captainRoom === roomId) ? '' : roomId;
-  save(); renderGameArea();
-}
-
-function renderGameArea() {
-  const panel = document.getElementById('panel-game');
-  if (!panel || !panel.classList.contains('active')) return;
-  if (!state) return;
-  const log = state.log;
-  const game = state.game || { currentTurn:'', captainRoom:'' };
-  const players = getPlayerNames().slice(0, 4).filter(Boolean);
-
-  // ── Turn banner ──
-  const banner = document.getElementById('game-turn-banner');
-  if (banner) {
-    if (!onlineMode) {
-      banner.style.display = 'none';
-    } else if (!myPlayerName) {
-      banner.className = 'game-turn-banner banner-setup';
-      banner.style.display = '';
-      banner.innerHTML = `<span>Choose your player below to track turns</span>`;
-    } else if (isMyTurn()) {
-      banner.className = 'game-turn-banner banner-my-turn';
-      banner.style.display = '';
-      banner.innerHTML = `<span>Your turn</span><button class="game-end-turn-btn" onclick="endTurn()">End Turn →</button>`;
-    } else {
-      banner.className = 'game-turn-banner banner-waiting';
-      banner.style.display = '';
-      banner.innerHTML = `<span>Waiting for ${game.currentTurn || '?'}…</span>`;
-    }
-  }
-
-  // ── Ship rooms ──
-  const sr = document.getElementById('game-ship-rooms');
-  if (sr) {
-    sr.innerHTML = '';
-    ROOM_DEFS.forEach(room => {
-      const checked = log.shipDamage[room.id] || 0;
-      const isCaptain = game.captainRoom === room.id;
-      let boxes = '';
-      for (let i = 1; i <= room.max; i++)
-        boxes += `<div class="dmg-box ${i <= checked ? 'checked' : ''}" onclick="toggleShipDmg('${room.id}',${i},${room.max})">✕</div>`;
-      const d = document.createElement('div');
-      d.className = 'room-block';
-      d.innerHTML = `
-        <button class="game-captain-btn ${isCaptain ? 'active' : ''}" onclick="setCaptainRoom('${room.id}')" title="Mark as captain's room this turn">⚓</button>
-        <span class="room-name">${room.name}</span>
-        <div class="dmg-boxes">${boxes}</div>
-      `;
-      sr.appendChild(d);
-    });
-  }
-
-  // ── Stats row ──
-  const statsEl = document.getElementById('game-stats-row');
-  if (statsEl) {
-    const xpUnspent = (log.xp || []).filter(v => !v).length;
-    const totalShipDmg = Object.values(log.shipDamage || {}).reduce((a, b) => a + b, 0);
-    const defeats = (log.defeats || []).filter(Boolean).length;
-    statsEl.innerHTML = `
-      <span class="game-stat">XP unspent: <strong>${xpUnspent}</strong></span>
-      <span class="game-stat">Event deck: <strong>${log.eventDeck || 1}</strong></span>
-      <span class="game-stat">Ship dmg: <strong>${totalShipDmg}</strong>/11</span>
-      ${defeats ? `<span class="game-stat game-stat-defeat">Defeats: <strong>${defeats}</strong></span>` : ''}
-    `;
-  }
-
-  // ── Crew grid ──
-  _renderGameCrewGrid(log);
-
-  // ── Personal section ──
-  _renderGamePersonal(log, players);
-}
-
-function _renderGameCrewGrid(log) {
-  const cg = document.getElementById('game-crew-grid');
-  if (!cg) return;
-  cg.innerHTML = '';
-  CREW_MEMBERS.forEach((name, idx) => {
-    const dmg = (log.crewDamage || {})[name] || 0;
-    const lvl = (log.crewLevel || {})[name] || 0;
-    const fatigue = (log.crewFatigue || {})[name] || 0;
-    const statuses = (log.crewStatus || {})[name] || {};
-    const hasActiveStatus = CREW_STATUSES.some(s => statuses[s.key]);
-
-    const fatigueDots = [0, 1].map(i =>
-      `<span class="fatigue-dot ${i < fatigue ? 'filled' : ''}" onclick="changeCrewFatigue(${idx},${i < fatigue ? -1 : 1})" title="${i < fatigue ? 'Remove' : 'Add'} fatigue"></span>`
-    ).join('');
-
-    const statusChips = CREW_STATUSES.map(s =>
-      `<button class="crew-status-chip ${statuses[s.key] ? 'active' : ''}" onclick="toggleCrewStatus(${idx},'${s.key}')">${s.label}</button>`
-    ).join('');
-
-    const d = document.createElement('div');
-    d.className = 'game-crew-card' + (hasActiveStatus ? ' has-status' : '');
-    d.innerHTML = `
-      <div class="game-crew-name">${name}</div>
-      <div class="game-crew-stats">
-        <div class="game-crew-stat-group">
-          <span class="game-crew-stat-label">Dmg</span>
-          <div class="crew-ctrl">
-            <button class="crew-btn" onclick="changeCrewDmg(${idx},-1)">−</button>
-            <span class="crew-val">${dmg}</span>
-            <button class="crew-btn" onclick="changeCrewDmg(${idx},1)">+</button>
-          </div>
-        </div>
-        <div class="game-crew-stat-group">
-          <span class="game-crew-stat-label">Fatigue</span>
-          <div class="fatigue-dots">${fatigueDots}</div>
-        </div>
-        <div class="game-crew-stat-group game-crew-level">
-          <span class="game-crew-stat-label">Lv</span>
-          <span class="crew-val">${lvl}</span>
-        </div>
-      </div>
-      <div class="crew-status-row">${statusChips}</div>
-    `;
-    cg.appendChild(d);
-  });
-}
-
-function _renderGamePersonal(log, players) {
-  const el = document.getElementById('game-cmd-personal');
-  if (!el) return;
-  el.innerHTML = '';
-
-  if (onlineMode) {
-    const nameRow = document.createElement('div');
-    nameRow.className = 'game-player-row';
-    nameRow.innerHTML = `
-      <span class="game-player-label">Playing as:</span>
-      <select class="game-player-sel" onchange="setMyPlayerName(this.value)">
-        <option value="">— Choose —</option>
-        ${players.map(p => `<option value="${p}" ${p === myPlayerName ? 'selected' : ''}>${p}</option>`).join('')}
-      </select>
-    `;
-    el.appendChild(nameRow);
-  }
-
-  const cmdTitle = document.createElement('div');
-  cmdTitle.className = 'game-section-title';
-  cmdTitle.textContent = 'Command Tokens';
-  el.appendChild(cmdTitle);
-
-  const cmdGrid = document.createElement('div');
-  cmdGrid.className = 'cmd-grid';
-  players.forEach(p => {
-    const t = (log.commandTokens || {})[p] || 0;
-    const isMe = onlineMode && p === myPlayerName;
-    const d = document.createElement('div');
-    d.className = 'cmd-player' + (isMe ? ' cmd-player-me' : '');
-    d.innerHTML = `
-      <span class="cmd-name">${p}</span>
-      <div class="crew-ctrl">
-        <button class="crew-btn" onclick="changeCmd('${p}',-1)">−</button>
-        <span class="crew-val">${t}</span>
-        <button class="crew-btn" onclick="changeCmd('${p}',1)">+</button>
-      </div>
-    `;
-    cmdGrid.appendChild(d);
-  });
-  el.appendChild(cmdGrid);
-
-  if (onlineMode && players.length > 0) {
-    const turnDiv = document.createElement('div');
-    turnDiv.style.marginTop = '16px';
-    const curTurn = state.game?.currentTurn || '';
-    turnDiv.innerHTML = `
-      <div class="game-section-title">Active Player</div>
-      <div class="game-turn-controls">
-        ${players.map(p =>
-          `<button class="game-turn-btn ${curTurn === p ? 'active' : ''}" onclick="setCurrentTurn('${p}')">${p}</button>`
-        ).join('')}
-      </div>
-    `;
-    el.appendChild(turnDiv);
-  }
-}
 
 // ═══════════════════════════════════
 // SERVICE WORKER REGISTRATION
