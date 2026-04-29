@@ -19,6 +19,7 @@
   <div class="nav-logo">Sleeping Gods <small>Campaign Tracker</small></div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPanel('map',this)">Map</button>
+    <button class="nav-tab" onclick="showPanel('atlas',this)">Atlas</button>
     <button class="nav-tab" onclick="showPanel('quests',this)">Quests</button>
     <button class="nav-tab" onclick="showPanel('adv',this)">Adventure</button>
     <button class="nav-tab" onclick="showPanel('log',this)">Journey Log<span class="nav-badge" id="badge-log" style="display:none;"></span></button>
@@ -33,7 +34,14 @@
     <button id="music-btn-mute" onclick="musicToggleMute()" title="Mute" aria-label="Mute">&#128266;</button>
     <span id="music-track-title"></span>
   </div>
-  <button class="btn-new-camp" onclick="openFinishCampaign()">Finish Campaign</button>
+  <div class="nav-right">
+    <div id="online-badge" style="display:none">
+      <span id="online-badge-code"></span>
+      <button class="online-badge-btn" onclick="copyOnlineCode()" title="Copy code">⧉</button>
+      <button class="online-badge-btn" onclick="leaveOnlineCampaign()" title="Disconnect">✕</button>
+    </div>
+    <button class="btn-new-camp" onclick="openFinishCampaign()">Finish Campaign</button>
+  </div>
 </nav>
 
 <!-- MAP -->
@@ -54,6 +62,36 @@
     <input class="map-jump-input" id="map-jump-input" type="text" placeholder="# / R3" title="Jump to location (e.g. 47 or R3)"
       onkeydown="if(event.key==='Enter'){jumpToLocation(this.value);this.blur();}">
     <button class="map-jump-btn" onclick="jumpToLocation(document.getElementById('map-jump-input').value)">Go</button>
+  </div>
+</div>
+
+<!-- ATLAS -->
+<div id="panel-atlas" class="panel">
+  <div id="atlas-toolbar">
+    <button id="atlas-back-btn" class="atlas-tool-btn" onclick="atlasGoBack()" disabled>← Back</button>
+    <span id="atlas-label" class="atlas-label">–</span>
+    <div class="atlas-jump-row">
+      <input type="number" id="atlas-jump-input" class="atlas-jump-input" placeholder="Sida" min="2" max="31">
+      <button class="atlas-tool-btn" onclick="atlasJumpToPage()">Go</button>
+    </div>
+  </div>
+  <div id="atlas-body">
+    <div id="atlas-viewport">
+      <img id="atlas-img" src="" alt="Atlas spread" draggable="false">
+    </div>
+    <div id="atlas-arrows">
+      <button class="atlas-arr atlas-arr-up-l"   id="atlas-arr-upp-l" onclick="atlasNavigate('upp-l')"></button>
+      <button class="atlas-arr atlas-arr-up-r"   id="atlas-arr-upp-r" onclick="atlasNavigate('upp-r')"></button>
+      <button class="atlas-arr atlas-arr-down-l" id="atlas-arr-ner-l" onclick="atlasNavigate('ner-l')"></button>
+      <button class="atlas-arr atlas-arr-down-r" id="atlas-arr-ner-r" onclick="atlasNavigate('ner-r')"></button>
+      <button class="atlas-arr atlas-arr-left"   id="atlas-arr-left"  onclick="atlasNavigate('left')"></button>
+      <button class="atlas-arr atlas-arr-right"  id="atlas-arr-right" onclick="atlasNavigate('right')"></button>
+      <div id="atlas-zoom-ctrl">
+        <button class="atlas-zoom-btn" onclick="atlasZoom(1.4)" title="Zoom in">+</button>
+        <button class="atlas-zoom-btn" onclick="atlasZoom(0)"   title="Fit">⊙</button>
+        <button class="atlas-zoom-btn" onclick="atlasZoom(0.71)" title="Zoom out">−</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -527,6 +565,11 @@
 
 <!-- HOME SCREEN -->
 <div id="panel-home">
+  <div id="online-home-status" style="display:none">
+    <span id="online-home-code"></span>
+    <button class="online-badge-btn" onclick="copyOnlineCode()" title="Copy code">⧉</button>
+    <button class="online-badge-btn" onclick="leaveOnlineCampaign()" title="Disconnect">✕</button>
+  </div>
   <div class="home-logo">Sleeping Gods</div>
   <div class="home-sub">Campaign Tracker</div>
 
@@ -546,6 +589,16 @@
   <button class="home-btn home-btn-primary" onclick="startNewCampaign()">New Campaign</button>
   <button class="home-btn home-btn-secondary" id="btn-continue" onclick="continueCampaign()">Continue Campaign</button>
   <div id="campaign-info" class="campaign-info"></div>
+
+  <div class="home-online-section" id="home-online-section">
+    <div class="home-online-title">🌐 Online Multiplayer</div>
+    <div class="home-online-row">
+      <input type="text" id="online-code-input" class="online-code-input" placeholder="Campaign code" maxlength="6" autocomplete="off" spellcheck="false">
+      <button class="home-btn-online-join" onclick="joinOnlineCampaign()">Connect</button>
+    </div>
+    <button class="home-btn-online-create" onclick="createOnlineCampaign()">Create Online Campaign</button>
+  </div>
+
   <button class="home-btn home-btn-music" id="home-music-btn" onclick="musicToggleHome()">&#9654; Intro Music</button>
   <button class="home-btn home-btn-settings" onclick="openSettingsFromHome()">⚙ Settings</button>
   <div class="leaderboard">
@@ -555,6 +608,8 @@
 </div>
 
 <div id="toast-container"></div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
