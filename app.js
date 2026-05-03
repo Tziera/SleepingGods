@@ -1601,6 +1601,7 @@ function renderLog() {
     const dmg=log.crewDamage[name]||0;
     const lvl=log.crewLevel[name]||0;
     const fatigue=(log.crewFatigue||{})[name]||0;
+    const isCaptain=name.startsWith('Capt.');
     const statuses=(log.crewStatus||{})[name]||{};
     const safeId=name.replace(/[^a-zA-Z0-9]/g,'_');
     const statusChips=CREW_STATUSES.map(s=>
@@ -1621,7 +1622,7 @@ function renderLog() {
         <span class="crew-row-label">Fatigue</span>
         <div class="crew-ctrl">
           <button class="crew-btn" onclick="changeCrewFatigue(${idx},-1)">−</button>
-          <span class="crew-val">${fatigue}/2</span>
+          <span class="crew-val">${isCaptain ? fatigue : fatigue+'/2'}</span>
           <button class="crew-btn" onclick="changeCrewFatigue(${idx},1)">+</button>
         </div>
       </div>
@@ -1692,7 +1693,9 @@ function changeCrewDmg(idx,d) {
 function changeCrewFatigue(idx,d) {
   const name=CREW_MEMBERS[idx];
   if(!state.log.crewFatigue) state.log.crewFatigue={};
-  state.log.crewFatigue[name]=Math.min(2,Math.max(0,(state.log.crewFatigue[name]||0)+d));
+  const isCaptain=name.startsWith('Capt.');
+  const max=isCaptain?Infinity:2;
+  state.log.crewFatigue[name]=Math.min(max,Math.max(0,(state.log.crewFatigue[name]||0)+d));
   save(); renderLog();
 }
 function toggleCrewStatus(idx,key) {

@@ -770,6 +770,12 @@ body.nav-hidden .panel{top:0;}
   .adv-body { flex-direction:column; }
   #map-zoom { bottom:60px; }
 }
+@media (max-width: 480px) {
+  #map-zoom { flex-direction:row; flex-wrap:wrap; justify-content:flex-end;
+    left:8px; right:8px; bottom:68px; gap:6px; }
+  .zoom-btn { width:42px; height:42px; }
+  #map-img-wrap { --pin-s:0.72; }
+}
 
 /* ── EXPORT / IMPORT / CLEAR ── */
 .data-mgmt-section { margin-bottom:20px; }
