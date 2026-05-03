@@ -775,6 +775,7 @@ body.nav-hidden .panel{top:0;}
     left:8px; right:8px; bottom:68px; gap:6px; }
   .zoom-btn { width:42px; height:42px; }
   .loc-pin { transform: translate(-50%,-50%) scale(0.45); }
+  .cmd-player { flex-direction:column; align-items:center; gap:4px; }
 }
 
 /* ── EXPORT / IMPORT / CLEAR ── */
