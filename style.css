@@ -774,7 +774,7 @@ body.nav-hidden .panel{top:0;}
   #map-zoom { flex-direction:row; flex-wrap:wrap; justify-content:flex-end;
     left:8px; right:8px; bottom:68px; gap:6px; }
   .zoom-btn { width:42px; height:42px; }
-  #map-img-wrap { --pin-phone: 0.65; }
+  #map-img-wrap { --pin-phone: 0.2; }
 }
 
 /* ── EXPORT / IMPORT / CLEAR ── */
