@@ -2115,7 +2115,7 @@ let _questPickNums=[];
 function showQuestPick(keyword, nums) {
   _questPickNums=nums;
   document.getElementById('quest-pick-title').textContent='Multiple quests found';
-  document.getElementById('quest-pick-body').textContent=`Keyword "${keyword}" matchar ${nums.length} quests. Vilken vill du lägga till?`;
+  document.getElementById('quest-pick-body').textContent=`Keyword "${keyword}" matches ${nums.length} quests. Which one do you want to add?`;
   const sel=document.getElementById('quest-pick-sel');
   sel.innerHTML=nums.map(n=>`<option value="${n}">Quest #${n}</option>`).join('');
   document.getElementById('quest-pick-overlay').classList.add('open');

@@ -780,6 +780,9 @@ body.nav-hidden .panel{top:0;}
   .zoom-btn { width:42px; height:42px; }
   .loc-pin { transform: translate(-50%,-50%) scale(0.45); }
   .cmd-player { flex-direction:column; align-items:center; gap:4px; }
+  .dialog { padding:18px 16px; }
+  .dialog-actions { flex-direction:column-reverse; }
+  .btn-yes, .btn-no { width:100%; text-align:center; }
   .session-add-row { flex-wrap:wrap; }
   .session-date-inp { width:100%; box-sizing:border-box; }
   .btn-add-session { align-self:flex-end; }
