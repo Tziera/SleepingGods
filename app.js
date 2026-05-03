@@ -777,7 +777,8 @@ function initMap() {
   const img  = document.getElementById('map-img');
   function placePins() {
     wrap.querySelectorAll('.loc-pin, .ship-pin').forEach(p=>p.remove());
-    const pinScale = defaultMapScale > 0 ? Math.max(1, mapScale / defaultMapScale) : 1;
+    const phoneMultiplier = window.innerWidth <= 480 ? 0.72 : 1;
+    const pinScale = (defaultMapScale > 0 ? Math.max(1, mapScale / defaultMapScale) : 1) * phoneMultiplier;
     wrap.style.setProperty('--pin-s', pinScale);
     const iw = img.offsetWidth, ih = img.offsetHeight;
     LOCATIONS_DEF.forEach(loc => {
