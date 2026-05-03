@@ -1169,7 +1169,19 @@ function addReceivedKeyword() {
   if(!state.locations[currentLocId].receivedKeywords) state.locations[currentLocId].receivedKeywords=[];
   if(!state.locations[currentLocId].receivedKeywords.includes(val))
     state.locations[currentLocId].receivedKeywords.push(val);
-  save(); renderPopup(); updateHighlights();
+  const newQuests = Object.entries(questKeywords)
+    .filter(([num,kw]) => kw.toUpperCase()===val && !state.unlockedNums.includes(parseInt(num)))
+    .map(([num]) => parseInt(num));
+  if(newQuests.length===1) {
+    pushUndo();
+    state.activeQuests.push({num:newQuests[0]}); state.unlockedNums.push(newQuests[0]);
+    showToast('Quest #'+newQuests[0]+' added','ok');
+  } else if(newQuests.length>1) {
+    showQuestPick(val, newQuests);
+  } else {
+    showToast('No quest matches "'+val+'"','warn');
+  }
+  save(); renderPopup(); renderQuests(); updateHighlights();
   inp.value=''; inp.focus();
 }
 
@@ -2098,6 +2110,26 @@ function showDlg(title,body,onYes,danger=false) {
 }
 function closeDlg(){document.getElementById('dlg-overlay').classList.remove('open');dlgCb=null;}
 function dlgConfirm(){if(dlgCb)dlgCb();closeDlg();}
+
+let _questPickNums=[];
+function showQuestPick(keyword, nums) {
+  _questPickNums=nums;
+  document.getElementById('quest-pick-title').textContent='Multiple quests found';
+  document.getElementById('quest-pick-body').textContent=`Keyword "${keyword}" matchar ${nums.length} quests. Vilken vill du lägga till?`;
+  const sel=document.getElementById('quest-pick-sel');
+  sel.innerHTML=nums.map(n=>`<option value="${n}">Quest #${n}</option>`).join('');
+  document.getElementById('quest-pick-overlay').classList.add('open');
+}
+function closeQuestPick(){document.getElementById('quest-pick-overlay').classList.remove('open');_questPickNums=[];}
+function confirmQuestPick(){
+  const num=parseInt(document.getElementById('quest-pick-sel').value);
+  if(!num||state.unlockedNums.includes(num)){closeQuestPick();return;}
+  pushUndo();
+  state.activeQuests.push({num}); state.unlockedNums.push(num);
+  save(); renderQuests(); updateHighlights();
+  showToast('Quest #'+num+' added','ok');
+  closeQuestPick();
+}
 
 // ═══════════════════════════════════
 // FINISH CAMPAIGN
@@ -3216,5 +3248,9 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
       .catch(err => console.log('SW registration failed:', err));
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const btn = document.getElementById('btn-update');
+    if (btn) btn.style.display = '';
   });
 }

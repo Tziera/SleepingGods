@@ -543,6 +543,10 @@ body.nav-hidden .panel{top:0;}
 .home-btn-settings{background:transparent;border:1.5px solid var(--border);color:var(--border);
   font-size:.75rem;padding:10px 36px;margin-top:4px;}
 .home-btn-settings:hover{border-color:var(--gold-light);color:var(--gold-light);}
+.home-btn-update{background:rgba(26,85,85,.15);border:1.5px solid var(--teal-light);color:var(--teal-light);
+  font-size:.75rem;padding:10px 36px;margin-top:4px;animation:pulse-update 2s ease-in-out infinite;}
+.home-btn-update:hover{background:var(--teal);color:var(--parchment);}
+@keyframes pulse-update{0%,100%{opacity:1;}50%{opacity:.6;}}
 .settings-back-btn{font-family:'Cinzel',serif;font-size:.8rem;letter-spacing:.08em;
   background:var(--teal);border:2px solid var(--teal-light);color:var(--parchment);
   border-radius:4px;padding:10px 20px;cursor:pointer;margin-bottom:20px;

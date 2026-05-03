@@ -432,6 +432,19 @@
   </div>
 </div>
 
+<!-- QUEST PICK DIALOG (received keyword – multiple matches) -->
+<div class="overlay" id="quest-pick-overlay">
+  <div class="dialog">
+    <h2 id="quest-pick-title">Multiple quests found</h2>
+    <p id="quest-pick-body"></p>
+    <select class="quest-select" id="quest-pick-sel" style="margin-bottom:12px;width:100%;"></select>
+    <div class="dialog-actions">
+      <button class="btn-no" onclick="closeQuestPick()">Cancel</button>
+      <button class="btn-yes" onclick="confirmQuestPick()">Add Quest</button>
+    </div>
+  </div>
+</div>
+
 <!-- QUEST ACTION DIALOG -->
 <div class="overlay" id="qa-overlay">
   <div class="dialog">
@@ -548,6 +561,7 @@
   <div id="campaign-info" class="campaign-info"></div>
   <button class="home-btn home-btn-music" id="home-music-btn" onclick="musicToggleHome()">&#9654; Intro Music</button>
   <button class="home-btn home-btn-settings" onclick="openSettingsFromHome()">⚙ Settings</button>
+  <button class="home-btn home-btn-update" id="btn-update" onclick="location.reload()" style="display:none">↻ Update available – tap to reload</button>
   <div class="leaderboard">
     <div class="lb-title">⚓ Hall of Records</div>
     <div id="leaderboard-list"></div>
