@@ -788,7 +788,7 @@ function initMap() {
       pin.style.top  = (loc.y/100*ih)+'px';
       pin.title = 'Location '+loc.id;
       const d = state.locations[loc.id];
-      if(d?.keywords?.length || d?.note || d?.name) pin.classList.add('has-data');
+      if(d?.keywords?.length || d?.note || d?.name || d?.blockedKeywords?.length || d?.receivedKeywords?.length) pin.classList.add('has-data');
       if(d?.blockedKeywords?.length) pin.classList.add('has-blocked');
       if(SEA_LOCATIONS.has(loc.id)) pin.classList.add('sea-loc');
       if(DUNGEON_LOCATIONS.has(loc.id)) {
@@ -902,7 +902,7 @@ function updateHighlights() {
     const id = pin.dataset.id;
     const d = state.locations[id];
     pin.classList.remove('highlighted');
-    pin.classList.toggle('has-data', !!(d?.keywords?.length || d?.note || d?.name));
+    pin.classList.toggle('has-data', !!(d?.keywords?.length || d?.note || d?.name || d?.blockedKeywords?.length || d?.receivedKeywords?.length));
     const blockedKWs = (d?.blockedKeywords||[]).map(k=>k.toUpperCase());
     const hasBlockedMatch = blockedKWs.length > 0 && state.activeQuests.some(q => blockedKWs.includes(questKeywords[q.num]?.toUpperCase()));
     pin.classList.toggle('has-blocked', hasBlockedMatch);
