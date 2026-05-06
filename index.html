@@ -240,6 +240,19 @@
     </div>
   </div>
 
+  <!-- RULEPOP -->
+  <div class="log-section">
+    <div class="log-section-title">Rules Reference</div>
+    <div class="wakelock-row">
+      <a href="https://sleeping-gods.rulepop.com/" target="_blank" rel="noopener" class="btn-rulepop">
+        &#128214; Sleeping Gods Rules (Rulepop)
+      </a>
+    </div>
+    <span class="wakelock-hint" style="display:block;margin-top:4px;">
+      Opens a rules reference PWA. If you have it installed on your device, it will open directly.
+    </span>
+  </div>
+
   <!-- THEME -->
   <div class="log-section">
     <div class="log-section-title">Appearance</div>
@@ -275,6 +288,7 @@
       These actions are permanent and cannot be undone. Export a backup first!
     </p>
     <div class="data-mgmt-row">
+      <button class="btn-danger-sm" onclick="clearLocationNames()">Clear Location Names</button>
       <button class="btn-danger-sm" onclick="clearMapData()">Clear Map Notes &amp; Keywords</button>
       <button class="btn-danger-sm" onclick="clearLeaderboard()">Clear Leaderboard</button>
       <button class="btn-danger-sm" onclick="clearAchievements()">Clear Achievements</button>
@@ -362,7 +376,7 @@
   <div class="popup-header">
     <div class="popup-header-left">
       <span class="popup-title" id="popup-title">Location</span>
-      <input type="text" id="loc-name-input" class="loc-name-input" placeholder="Add a name..." autocomplete="off" maxlength="60">
+      <input type="text" id="loc-name-input" class="loc-name-input" placeholder="Add a name..." autocomplete="new-password" maxlength="60">
     </div>
     <button class="popup-close" onclick="closePopup()">✕</button>
   </div>

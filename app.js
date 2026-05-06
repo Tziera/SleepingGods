@@ -965,15 +965,17 @@ function openPopup(locId) {
   receivedInp.oninput = onKwReceivedInput;
   receivedInp.onkeydown = e=>{ if(e.key==='Enter') addReceivedKeyword(); };
   document.getElementById('loc-note').onblur = ()=>{
-    if(!state.locations[currentLocId]) state.locations[currentLocId]={keywords:[],note:''};
-    state.locations[currentLocId].note = document.getElementById('loc-note').value;
+    if(!state.locations[locId]) state.locations[locId]={keywords:[],note:''};
+    state.locations[locId].note = document.getElementById('loc-note').value;
     save(); updateHighlights();
   };
   const nameInp = document.getElementById('loc-name-input');
   nameInp.value = state.locations[locId]?.name || '';
+  nameInp.dataset.locId = locId;
   nameInp.onblur = ()=>{
-    if(!state.locations[currentLocId]) state.locations[currentLocId]={keywords:[],note:''};
-    state.locations[currentLocId].name = nameInp.value.trim();
+    if (nameInp.dataset.locId !== String(locId)) return;
+    if(!state.locations[locId]) state.locations[locId]={keywords:[],note:''};
+    state.locations[locId].name = nameInp.value.trim();
     save(); updateHighlights();
   };
 }
@@ -1222,6 +1224,8 @@ function renderPopup() {
     received.appendChild(c);
   });
   document.getElementById('loc-note').value = d.note||'';
+  const nameInpEl = document.getElementById('loc-name-input');
+  if (document.activeElement !== nameInpEl) nameInpEl.value = d.name||'';
 }
 
 function closePopup() {
@@ -1229,6 +1233,9 @@ function closePopup() {
   document.getElementById('kw-suggest').style.display='none';
   document.getElementById('kw-blocked-suggest').style.display='none';
   document.getElementById('kw-received-suggest').style.display='none';
+  const nameInpEl = document.getElementById('loc-name-input');
+  nameInpEl.value = '';
+  nameInpEl.dataset.locId = '';
   currentLocId=null;
 }
 
@@ -2332,6 +2339,19 @@ function importData(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+function clearLocationNames() {
+  showDlg('Clear Location Names',
+    'Remove all custom location names? Notes and keywords are kept.',
+    () => {
+      if (state?.locations) {
+        Object.values(state.locations).forEach(loc => { delete loc.name; });
+        save();
+        if (window.placePins) placePins();
+      }
+      showToast('Location names cleared', 'ok');
+    }, true);
 }
 
 function clearMapData() {

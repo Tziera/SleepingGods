@@ -865,6 +865,12 @@ body.nav-hidden .panel{top:0;}
   color:var(--border);font-style:normal;margin-left:4px;}
 .players-count.over-limit{color:var(--rust);}
 
+/* ── RULEPOP LINK ── */
+.btn-rulepop{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.1em;
+  display:inline-block;padding:8px 16px;border:1px solid var(--gold);border-radius:3px;
+  color:var(--gold);text-decoration:none;transition:all .2s;white-space:nowrap;}
+.btn-rulepop:hover{background:rgba(184,134,11,.15);color:var(--gold-light);border-color:var(--gold-light);}
+
 /* ── WAKE LOCK ── */
 .wakelock-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px;}
 .btn-wakelock{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.1em;
