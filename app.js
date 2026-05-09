@@ -1,4 +1,9 @@
 ﻿// ═══════════════════════════════════
+// VERSION
+// ═══════════════════════════════════
+const APP_VERSION = '1.5.0';
+
+// ═══════════════════════════════════
 // STATIC DATA
 // ═══════════════════════════════════
 const QUEST_KEYWORDS_DEFAULT = {
@@ -2893,6 +2898,12 @@ if (!state) {
   state = defaultState();
 }
 goHome();
+(function renderVersion() {
+  const hv = document.getElementById('home-version');
+  if (hv) hv.textContent = 'v' + APP_VERSION;
+  const sv = document.getElementById('settings-version');
+  if (sv) sv.textContent = 'v' + APP_VERSION;
+})();
 
 initMap();
 initLogListeners();
