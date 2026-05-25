@@ -681,6 +681,7 @@ function loadState() {
     if (!s.log.shipLocId) s.log.shipLocId = '';
     if (!s.dungeonStatus) s.dungeonStatus = {};
     if (!s.log.sessions) s.log.sessions = [];
+    if (!s.log.defeats) s.log.defeats = [false,false,false,false,false,false];
     // If campaign was finished, treat as no active campaign (go to home)
     if (s.campaignFinished) return null;
     return s;
@@ -1550,16 +1551,16 @@ function autoFillCardAchievements(num) {
   let changed=false;
 
   const achKey=CARD_TO_ACH[num];
+  if(!ach.achievements) ach.achievements={};
   if(achKey && !ach.achievements[achKey]) {
-    if(!ach.achievements) ach.achievements={};
     ach.achievements[achKey]=true; changed=true;
   }
 
   if(getAdvTypes(num).includes('Totem')) {
     const totemKey=CARD_TO_TOTEM[num]||(card?.name||'');
     const inList=TOTEMS_LIST.some(t=>(typeof t==='string'?t:t.name)===totemKey);
+    if(!ach.totems) ach.totems={};
     if(inList && !ach.totems[totemKey]) {
-      if(!ach.totems) ach.totems={};
       ach.totems[totemKey]=true; changed=true;
     }
   }
@@ -3042,11 +3043,7 @@ async function musicScanVariants(prefix) {
       return fetch(url, { method: 'HEAD' }).then(r => r.ok ? url : null).catch(() => null);
     })
   );
-  const found = [];
-  for (const url of results) {
-    if (url === null) break;
-    found.push(url);
-  }
+  const found = results.filter(url => url !== null);
   return found;
 }
 
@@ -3163,6 +3160,8 @@ async function musicStartExploration() {
     await musicInitPromise;
     music.pendingStart = false;
     if (music.playing) return;
+  } else if (music.playing && !music.isDungeon) {
+    return;
   }
   musicBuildAtlasPlaylist();
   musicLoadCurrent();
