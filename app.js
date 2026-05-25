@@ -2211,7 +2211,7 @@ let pickedEndingNum = null;
 function pickEnding(num) {
   document.getElementById('ending-picker-overlay').classList.remove('open');
   if (num === null) {
-    openFinishCampaign();
+    document.getElementById('finish-overlay').classList.add('open');
     return;
   }
   pickedEndingNum = num;
@@ -3167,7 +3167,7 @@ async function musicStartExploration() {
     await musicInitPromise;
     music.pendingStart = false;
     if (music.playing) return;
-  } else if (music.playing && !music.isDungeon) {
+  } else if (music.playing && music.mode !== 'dungeon') {
     return;
   }
   musicBuildAtlasPlaylist();
