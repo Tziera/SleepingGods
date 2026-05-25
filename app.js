@@ -2019,7 +2019,10 @@ function saveKwEdits() {
   const oldKeywords = {...questKeywords};
   for(let i=1;i<=218;i++) {
     const inp=document.getElementById('kwe-'+i);
-    if(inp && inp.value.trim()) questKeywords[i]=inp.value.trim().toUpperCase();
+    if(inp) {
+      const trimmed = inp.value.trim();
+      questKeywords[i] = trimmed ? trimmed.toUpperCase() : (QUEST_KEYWORDS_DEFAULT[i] || '');
+    }
   }
   const kwDiffs = {};
   for (let j = 1; j <= 218; j++) {
@@ -2207,6 +2210,10 @@ let pickedEndingNum = null;
 
 function pickEnding(num) {
   document.getElementById('ending-picker-overlay').classList.remove('open');
+  if (num === null) {
+    openFinishCampaign();
+    return;
+  }
   pickedEndingNum = num;
   doFinish();
 }
