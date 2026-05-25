@@ -540,7 +540,7 @@
     </div>
     <div class="score-breakdown" id="score-breakdown"></div>
     <div class="dialog-actions">
-      <button class="btn-no" onclick="closeScore()">Close</button>
+      <button class="btn-no" onclick="closeScore();showToast('Returned to campaign — score not saved to leaderboard','info')">Close</button>
       <button class="btn-no" onclick="copyCampaignSummary()" title="Copy result to clipboard">&#128203; Copy</button>
       <button class="btn-yes" onclick="saveScoreAndGoHome()">Save & Go Home</button>
     </div>
