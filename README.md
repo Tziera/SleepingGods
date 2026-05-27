@@ -76,7 +76,7 @@ Example: `dungeon-crypt-of-thorns-c.ogg` — no code changes needed, picked up a
 
 ## Credits
 
-- Tracker created by [Tziera](https://github.com/Tziera/SleepingGods)
+- Campaign Tracker created by [Tziera](https://github.com/Tziera/SleepingGods)
 - Map SVG by [@Fire_Forever](https://boardgamegeek.com/profile/Fire_Forever) on BoardGameGeek
 - Soundtrack composed by Tziera — [listen on Suno](https://suno.com/playlist/05769256-e42d-4e76-ac14-cecce8b5c9c5)
 - *Sleeping Gods* is designed by Ryan Laukat and published by [Red Raven Games](https://www.redravengames.com/sleeping-gods/)
