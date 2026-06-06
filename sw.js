@@ -1,4 +1,4 @@
-const CACHE = 'sleeping-gods-v19';
+const CACHE = 'sleeping-gods-v20';
 const FILES = [
   '/',
   '/index.html',

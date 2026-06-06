@@ -758,6 +758,19 @@ body.nav-hidden .panel{top:0;}
 .form-field input:focus,.form-field select:focus{border-color:var(--teal);}
 
 .empty-state{text-align:center;padding:28px 20px;color:var(--muted-lt);font-style:italic;font-size:.92rem;}
+
+#scroll-top-btn{
+  position:fixed;bottom:72px;right:16px;z-index:900;
+  width:40px;height:40px;border-radius:50%;
+  background:var(--teal);color:var(--parchment);
+  border:2px solid var(--teal-light);
+  font-size:1.2rem;line-height:1;cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
+  opacity:0;pointer-events:none;
+  transition:opacity .2s;
+}
+#scroll-top-btn.visible{opacity:1;pointer-events:auto;}
+
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--parchment-dark);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}

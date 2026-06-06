@@ -1,7 +1,7 @@
 ﻿// ═══════════════════════════════════
 // VERSION
 // ═══════════════════════════════════
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 
 // ═══════════════════════════════════
 // STATIC DATA
@@ -759,6 +759,34 @@ function showPanel(name, btn) {
   if(name==='achievements') renderAchievements();
   if(name==='optional') renderOptional();
   if(name==='map') { if(window.placePins) window.placePins(); else updateHighlights(); }
+  _activeScrollPanel = SCROLL_PANELS.has(name) ? name : null;
+  const scrollBtn = document.getElementById('scroll-top-btn');
+  if (scrollBtn) scrollBtn.classList.remove('visible');
+}
+
+// ═══════════════════════════════════
+// SCROLL-TO-TOP
+// ═══════════════════════════════════
+const SCROLL_PANELS = new Set(['log','achievements','settings']);
+let _activeScrollPanel = null;
+
+function _onPanelScroll() {
+  const btn = document.getElementById('scroll-top-btn');
+  if (btn) btn.classList.toggle('visible', this.scrollTop > 200);
+}
+
+function scrollPanelToTop() {
+  if (_activeScrollPanel) {
+    const el = document.getElementById('panel-' + _activeScrollPanel);
+    if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function initScrollTop() {
+  SCROLL_PANELS.forEach(name => {
+    const el = document.getElementById('panel-' + name);
+    if (el) el.addEventListener('scroll', _onPanelScroll);
+  });
 }
 
 // ═══════════════════════════════════
@@ -2493,6 +2521,9 @@ function cancelCampaign() {
 // ═══════════════════════════════════
 function goHome() {
   document.getElementById('panel-home').classList.remove('hidden');
+  _activeScrollPanel = null;
+  const scrollBtn = document.getElementById('scroll-top-btn');
+  if (scrollBtn) scrollBtn.classList.remove('visible');
   const continueBtn = document.getElementById('btn-continue');
   if (continueBtn) continueBtn.disabled = !campaignActive;
   document.getElementById('nav').style.display = '';
@@ -2940,6 +2971,7 @@ if (!state) {
   state = defaultState();
 }
 goHome();
+initScrollTop();
 (function renderVersion() {
   const hv = document.getElementById('home-version');
   if (hv) hv.textContent = 'v' + APP_VERSION;
