@@ -449,6 +449,14 @@ const ROOM_DEFS = [
   {id:'bridge',name:'Bridge',max:2},
 ];
 const OPTIONAL_QUEST_NUMS = new Set([168,169,170,171,172,173,174,175,176,177,178,179,180]);
+const RESOURCES = [
+  {key:'grain',     label:'Grain',      category:'food'},
+  {key:'meat',      label:'Meat',       category:'food'},
+  {key:'vegetables',label:'Vegetables', category:'food'},
+  {key:'material',  label:'Material',   category:''},
+  {key:'coin',      label:'Coin',       category:''},
+  {key:'artifacts', label:'Artifacts',  category:''},
+];
 const TOTAL_ADV_CARDS = 147;
 
 const ADV_CARD_DATA = [
@@ -650,6 +658,7 @@ function defaultState() {
       crewFatigue:{}, crewStatus:{},
       xp:[], defeats:[false,false,false,false,false,false], eventDeck:1,
       sessions: [],
+      resources: { grain:0, meat:0, vegetables:0, material:0, coin:0, artifacts:0 },
     }
   };
 }
@@ -682,6 +691,7 @@ function loadState() {
     if (!s.dungeonStatus) s.dungeonStatus = {};
     if (!s.log.sessions) s.log.sessions = [];
     if (!s.log.defeats) s.log.defeats = [false,false,false,false,false,false];
+    if (!s.log.resources) s.log.resources = { grain:0, meat:0, vegetables:0, material:0, coin:0, artifacts:0 };
     // If campaign was finished, treat as no active campaign (go to home)
     if (s.campaignFinished) return null;
     return s;
@@ -1687,6 +1697,24 @@ function renderLog() {
     cmdg.appendChild(d);
   });
 
+  // Resources
+  const rg=document.getElementById('resource-grid'); rg.innerHTML='';
+  const res=log.resources||{};
+  RESOURCES.forEach(r=>{
+    const val=res[r.key]||0;
+    const label=r.category==='food' ? `${r.label} <span class="res-food-tag">food</span>` : r.label;
+    const d=document.createElement('div'); d.className='cmd-player';
+    d.innerHTML=`
+      <span class="cmd-name">${label}</span>
+      <div class="crew-ctrl">
+        <button class="crew-btn" onclick="changeResource('${r.key}',-1)">−</button>
+        <span class="crew-val">${val}</span>
+        <button class="crew-btn" onclick="changeResource('${r.key}',1)">+</button>
+      </div>
+    `;
+    rg.appendChild(d);
+  });
+
   renderXP();
 
   // Defeats
@@ -1744,6 +1772,11 @@ function changeCrewLvl(idx,d) {
 }
 function changeCmd(p,d) {
   state.log.commandTokens[p]=Math.max(0,(state.log.commandTokens[p]||0)+d);
+  save(); renderLog();
+}
+function changeResource(key,d) {
+  if(!state.log.resources) state.log.resources={grain:0,meat:0,vegetables:0,material:0,coin:0,artifacts:0};
+  state.log.resources[key]=Math.max(0,(state.log.resources[key]||0)+d);
   save(); renderLog();
 }
 let homeDifficulty = 'Normal';
@@ -2161,9 +2194,10 @@ let finishData = { gold:0, artifacts:0, ending:false };
 
 function openFinishCampaign() {
   if (!state) { alert('No active campaign.'); return; }
-  finishData = { gold:0, artifacts:0, ending:false };
+  const trackedArtifacts = state.log.resources?.artifacts || 0;
+  finishData = { gold:0, artifacts:trackedArtifacts, ending:false };
   document.getElementById('finish-gold').textContent='0';
-  document.getElementById('finish-artifacts').textContent='0';
+  document.getElementById('finish-artifacts').textContent=trackedArtifacts;
   setFinishEnding(false);
   document.getElementById('finish-overlay').classList.add('open');
 }
