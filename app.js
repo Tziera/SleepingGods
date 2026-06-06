@@ -3000,6 +3000,7 @@ function updateNavHeight() {
 }
 updateNavHeight();
 window.addEventListener('resize', updateNavHeight);
+new ResizeObserver(updateNavHeight).observe(document.getElementById('nav'));
 
 // Backup reminder – warn if no export in 7+ days during an active campaign
 const _lastExport = localStorage.getItem('sg_last_export');

@@ -14,7 +14,7 @@ html,body{height:100%;overflow:hidden;font-family:'Crimson Text',Georgia,serif;b
 #nav{position:fixed;top:0;left:0;right:0;min-height:var(--nav-h);
   background:linear-gradient(180deg,#0d0a05,#1c1208);
   border-bottom:2px solid var(--gold);
-  display:flex;align-items:center;flex-wrap:wrap;padding:0 16px;z-index:100;gap:8px;}
+  display:flex;align-items:center;flex-wrap:wrap;padding:4px 16px;z-index:100;gap:8px;}
 .nav-logo{font-family:'Cinzel',serif;color:var(--gold-light);font-size:1rem;
   font-weight:700;letter-spacing:.06em;white-space:nowrap;flex-shrink:0;}
 .nav-logo small{display:block;font-size:.55rem;color:var(--border);letter-spacing:.2em;font-weight:400;}
